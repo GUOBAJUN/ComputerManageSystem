@@ -22,14 +22,15 @@ router.post('/report', (req, res) => {
     //处理磁盘利用率
     var total = 0;
     var total_Used = 0;
-    for (let key in body["Disk Usgae"]){
+    for (let key in body["Disk Usage"]){
         console.log(total)
-        total_Used += Number.parseFloat(body["Disk Usgae"][key]["Used"].replace("GB", ""))
-        total += Number.parseFloat(body["Disk Usgae"][key]["Total"].replace("GB", ""))
+        total_Used += Number.parseFloat(body["Disk Usage"][key]["Used"].replace("GB", ""))
+        total += Number.parseFloat(body["Disk Usage"][key]["Total"].replace("GB", ""))
     }
     Used_Rate = total_Used/total;
-    console.log("磁盘总利用率：")
-    console.log(Used_Rate)
+    // console.log("磁盘总利用率：")
+    var Used_Rate = Math.round(parseInt( Used_Rate * 1000 ))/10
+    // console.log(Used_Rate)
     //存入数据库
     db.query(`INSERT INTO Devices (Hostname, Time_Stamp, CPU_Usage, Memory_Usage, Swap_Usage, Disk_Usage, Network_Usage, Package_Loss_Rate, System_Info) VALUES(?,?,?,?,?,?,?,?,?)`,
     [body["System Info"]["Hostname"], body["Time Stamp"], body["CPU Usage"], body["Memory Usage"], body["Swap Usage"], 
@@ -39,6 +40,7 @@ router.post('/report', (req, res) => {
         });
     return res.send('{success: true}');
 })
+router.post()
 
 app.use('/', router);
 app.listen(port, ()=>{
