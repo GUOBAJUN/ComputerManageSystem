@@ -4,7 +4,6 @@ import platform
 import threading
 import time
 
-import keyboard
 import psutil
 import requests
 import win32api
@@ -13,7 +12,6 @@ import win32gui
 import win32gui_struct
 
 MASTER = 'http://127.0.0.1:10086/report'
-global Signal
 Signal = True
 
 
@@ -180,6 +178,7 @@ class SysTrayIcon(object):
             menu_action(self)
 
 
+# 判断是否是除了String以外的可迭代数据类型
 def non_string_iterable(obj):
     try:
         iter(obj)
@@ -187,9 +186,9 @@ def non_string_iterable(obj):
         return False
     else:
         return not isinstance(obj, str)
+
+
 # 获取系统信息
-
-
 def get_system_info():
     system_info = {}
     system_info['OS Name'] = platform.system()
@@ -210,7 +209,28 @@ def data_dump(info: dict):
 
 # 在网络恢复后重传本地保存的数据
 def dump_report():
-    pass
+    if not os.path.exists('dump'):
+        return
+    files = os.listdir('dump')
+    if len(files) == 0:
+        return
+    print('Attempting to report dumped data.')
+    headers={'Content-Type': 'application/json'}
+    for file in files:
+        fp =  open(file, 'w', encoding='utf-8')
+        try:
+            response = requests.post(url=MASTER,
+                                        headers=headers,
+                                        data=json.load(fp))
+            if response.status_code == 200:
+                fp.close()
+                os.remove(file)
+            else:
+                print('Failed to report dumped data.')
+                break
+        except:
+            print('Failed to report dumped data.')
+            break
 
 
 # 报告设备运行状态
@@ -259,6 +279,7 @@ def report_hardware_info():
                 url=MASTER, headers=headers, data=json.dumps(info))
             if response.status_code == 200:
                 print('Successfully report system state to master node.')
+                dump_report()
                 break
             else:
                 print('An error occurred when sending system state.')
