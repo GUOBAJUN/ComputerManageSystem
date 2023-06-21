@@ -30,20 +30,30 @@ db.connect((err) => {
 //   }
 //   console.log('Table created!');
 
-db.query(`
-  CREATE TABLE IF NOT EXISTS Users (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    Username VARCHAR(255) NOT NULL,
-    Password VARCHAR(255) NOT NULL,
-    Permission VARCHAR(255) NOT NULL,
-    Department VARCHAR(255) NOT NULL,
-    Father VARCHAR(255) NOT NULL
-  )
-`, (err) => {
-  if (err) {
-    console.log(err)
-    //throw err;
-  }
-  console.log('Table created!');
+// db.query(`
+//   CREATE TABLE IF NOT EXISTS Users (
+//     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+//     Username VARCHAR(255) NOT NULL,
+//     Password VARCHAR(255) NOT NULL,
+//     Permission VARCHAR(255) NOT NULL,
+//     Department VARCHAR(255) NOT NULL,
+//     Father VARCHAR(255) NOT NULL
+//   )
+// `, (err) => {
+//   if (err) {
+//     console.log(err)
+//     //throw err;
+//   }
+//   console.log('Table created!');
 
-});
+// });
+
+// db.query(`
+//   INSERT INTO Users (id, Username, Password, Permission, Department, Father) VALUES (?, ?, ?, ?, ?, ?)
+// `, [0, "root", "admin", "root", "root", "NULL"], (err) => {
+//   if (err) {
+//     console.log(err)
+//     //throw err;
+//   }
+//   console.log('Table created!');
+// });
