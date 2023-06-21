@@ -1,3 +1,5 @@
 Server/node_modules
 dump
 Client/dump
+Client/__pycache__
+Client/UI/__pycache__
