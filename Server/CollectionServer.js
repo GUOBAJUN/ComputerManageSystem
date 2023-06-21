@@ -15,9 +15,10 @@ app.use(compression());
 app.use(cors());
 app.options('*', cors());
 
-const router = new express.Router()
+const agentRouter = new express.Router()
+const adminRouter = new express.Router()
 
-router.post('/report', (req, res) => {
+agentRouter.post('/report', (req, res) => {
     const body = req.body;
     //处理磁盘利用率
     var total = 0;
@@ -40,9 +41,9 @@ router.post('/report', (req, res) => {
         });
     return res.send('{success: true}');
 })
-router.post()
 
-app.use('/', router);
+
+app.use('/', agentRouter);
 app.listen(port, ()=>{
     console.log('Web Server Up!')
 })
