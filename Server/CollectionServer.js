@@ -114,7 +114,7 @@ adminRouter.post('/login', (req, res) => {
 
 //查询某设备详细信息，pass中
 adminRouter.get('/status_single', (req, res) => {
-    const Hostname = req.Hostname
+    const Hostname = JSON.parse(req.Hostname)
     //查询单个设备最新数据
     const query = `
     SELECT * FROM Devices
