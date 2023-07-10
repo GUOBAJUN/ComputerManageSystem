@@ -151,7 +151,7 @@ adminRouter.get('/status_all', (req, res) => {
         if (error) {
             // console.error('Error executing query: ' + error.stack);
             LogMsg('Error executing query: ' + error.stack)
-            return res.status(200).send({ success: false, msg: '查询失败' });;
+            return res.status(403).send({ success: false, msg: '查询失败' });;
         }
 
         const time_now = new Date()
