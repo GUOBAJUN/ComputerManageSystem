@@ -6,7 +6,14 @@ const bodyParser = require('body-parser');
 const cors = require('cors')
 const session = require('express-session');
 
-const db = mysql.createConnection(config.MySQLConnectionOption);
+const db_pool = mysql.createPool(config.MySQLConnectionOption);
+db = db_pool.getConnection((err, connection) => {
+    if (err) {
+        LogMsg(`Error while getting connection from pool: ${err}`)
+        return;
+    }
+});
+
 const port = process.env.port || process.env.PORT || 10086
 
 const app = express();
@@ -106,8 +113,8 @@ adminRouter.post('/login', (req, res) => {
 })
 
 //查询某设备详细信息，pass中
-adminRouter.get('/status_single', (req, res) => {
-    const Hostname = req.Hostname
+adminRouter.post('/status_single', (req, res) => {
+    const Hostname = JSON.parse(req.Hostname)
     //查询单个设备最新数据
     const query = `
     SELECT * FROM Devices
@@ -180,7 +187,7 @@ sio.on('connection', (socket) => {
 
     //连接的确认和分配玩家位
     socket.on('ready', (data, callback) => {
-        LogMsg(`用户 ${socket.request.session.username} 连接成功`)
+        LogMsg(`用户 ${scoket.request.session.username} 连接成功`)
         //记录登录信息
         users.push({
             name: socket.request.session.username,
