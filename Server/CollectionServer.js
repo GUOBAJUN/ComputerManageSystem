@@ -8,13 +8,6 @@ const session = require('express-session');
 
 const db = mysql.createConnection(config.MySQLConnectionOption);
 
-// const db_pool = mysql.createPool(config.MySQLConnectionOption);
-// db = db_pool.getConnection((err, connection) => {
-//     if (err) {
-//         LogMsg(`Error while getting connection from pool: ${err}`)
-//         return;
-//     }
-// });
 const port = process.env.port || process.env.PORT || 10086
 
 const app = express();
