@@ -1,4 +1,5 @@
 Server/node_modules
+Server/sessions
 dump
 Client/dump
 Client/__pycache__
