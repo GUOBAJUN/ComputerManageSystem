@@ -15,24 +15,24 @@ from UI.Ui_mainwindow import Ui_Mainwindow
 path = os.path.abspath(__file__)
 filePath = os.path.dirname(path)
 
+
 class ReportThread(QThread):
-    def __init__(self, agent:Agent.CollectingAgent | None = ...,parent: QObject | None = ...) -> None:
+    def __init__(self, agent: Agent.CollectingAgent | None = ..., parent: QObject | None = ...) -> None:
         super().__init__()
         self.agent = agent
-    
+
     def run(self):
         self.agent.report_system_status()
-    
+
     def cancel(self):
         self.agent.cancelled = True
 
 
-
-class MainWindow(AcrylicWindow, Ui_Mainwindow):
+class MainWindow(Ui_Mainwindow, AcrylicWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setupUi(self)
- 
+
         # 设置主题色
         setThemeColor('#60bb50')
 
@@ -52,14 +52,18 @@ class MainWindow(AcrylicWindow, Ui_Mainwindow):
 
     def BackgroundWorker(self):
         self.report_thread.start()
-    
+
+    def EditBtn_Clicked(self):
+        self.Addr_TextEdit.setEnabled(True)
+        self.Port_TextEdit.setEnabled(True)
+
     def closeEvent(self, e):
         return super().closeEvent(e)
-    
 
 
 if __name__ == '__main__':
-    QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
+    QApplication.setHighDpiScaleFactorRoundingPolicy(
+        Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
     QApplication.setAttribute(Qt.ApplicationAttribute.AA_EnableHighDpiScaling)
     QApplication.setAttribute(Qt.ApplicationAttribute.AA_UseHighDpiPixmaps)
 
