@@ -74,15 +74,15 @@ db.connect((err) => {
 //   console.log(results);
 // });
 
-const query = `
-    SELECT t1.* FROM Devices t1
-    INNER JOIN (
-        SELECT Hostname, MAX(Time_Stamp) AS max_timestamp
-        FROM Devices
-        GROUP BY Hostname
-    ) t2
-    ON t1.Hostname = t2.Hostname AND t1.Time_Stamp = t2.max_timestamp;
-  `;
+// const query = `
+//     SELECT t1.* FROM Devices t1
+//     INNER JOIN (
+//         SELECT Hostname, MAX(Time_Stamp) AS max_timestamp
+//         FROM Devices
+//         GROUP BY Hostname
+//     ) t2
+//     ON t1.Hostname = t2.Hostname AND t1.Time_Stamp = t2.max_timestamp;
+//   `;
 
 // const query = `
 //   SELECT t1.System_Info, t1.Time_Stamp FROM Devices t1
@@ -102,24 +102,32 @@ const query = `
 //     LIMIT 1;
 //     `;
 
-db.query(query, (error, results, fields) => {
-  if (error) {
-    console.error('Error executing query: ' + error.stack);
-    return;
+// db.query(query, (error, results, fields) => {
+//   if (error) {
+//     console.error('Error executing query: ' + error.stack);
+//     return;
+//   }
+//   var data = results
+//   const time_now = new Date()
+//   for (let i = 0; i < data.length; i++) {
+//     console.log((time_now - 1))
+//     console.log(parseInt(data[i]['Time_Stamp']) / 1000000)
+//     if ((time_now - parseInt(data[i]['Time_Stamp']) / 1000000) > 30 * 1000) {
+//       //未存活，5min
+//       data[i]['live'] = 0
+//     }
+//     else {
+//       //存活
+//       data[i]['live'] = 1
+//     }
+//   }
+//   console.log('Query results:', data);
+// });
+
+db.query(`SELECT * FROM Users`, (err, results, fields) => {
+  if (err) {
+    console.log(err)
+    //throw err;
   }
-  var data = results
-  const time_now = new Date()
-  for (let i = 0; i < data.length; i++) {
-    console.log((time_now - 1))
-    console.log(parseInt(data[i]['Time_Stamp']) / 1000000)
-    if ((time_now - parseInt(data[i]['Time_Stamp']) / 1000000) > 30 * 1000) {
-      //未存活，5min
-      data[i]['live'] = 0
-    }
-    else {
-      //存活
-      data[i]['live'] = 1
-    }
-  }
-  console.log('Query results:', data);
+  console.log(results);
 });

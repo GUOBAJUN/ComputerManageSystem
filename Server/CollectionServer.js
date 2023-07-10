@@ -58,8 +58,8 @@ agentRouter.post('/report', (req, res) => {
     var Used_Rate = Math.round(parseInt(Used_Rate * 1000)) / 10
 
     //发出CPU警告
-    if (parseFloat(body['CPU Usage']) > 0.1){
-        sio.emit("trap", {'type': "CPU_HIGH", 'data': body})
+    if (parseFloat(body['CPU Usage']) > 0.1) {
+        sio.emit("trap", { 'type': "CPU_HIGH", 'data': body })
     }
 
     //存入数据库
@@ -75,40 +75,41 @@ agentRouter.post('/report', (req, res) => {
 
 //提供给manager，登录
 adminRouter.post('/login', (req, res) => {
-    const username = req.body.username
-    const password = req.body.password
-    LogMsg(`处理登录请求：${username}`)
+    const username = req.body.Account
+    const password = req.body.Password
+    LogMsg(`处理登录请求：账号：${username} 密码：${password}`,)
 
     // 处理请求数据并返回响应结果
-    db.query("SELECT * FROM Users WHERE username = ?", [username], function (err, row) {
+    db.query("SELECT * FROM Users WHERE Username = ?", [username], function (err, rows) {
         LogMsg("正在查询数据库......")
         if (err) {
-            LogMsg(err)
-            return;
+            LogMsg(`查询出现错误: ${err}`)
+            return res.status(403).send({ success: false, msg: '查询错误' });;
         }
-        if (row == undefined) {
-            // res.send("用户名不存在， 请注册账户");
-            LogMsg("登录失败，用户名不存")
+        if (rows == undefined || rows == "") {
+            LogMsg(`登录失败，用户名${username}不存在`)
             return res.status(403).send({ success: false, msg: '用户或密码错误' });
         }
-        else {
-            if (row.password != password) {
-                LogMsg("登录失败，密码错误")
-                return res.status(403).send({ success: false, msg: '用户或密码错误' });
-            }
-            else {
-                //登陆成功建立会话
-                LogMsg(`登录成功：${username}"`)
+        for (let i = 0; i < rows.length; i++) {
+            if (rows[i].Password == password) {
+                LogMsg(`登录成功，账号：${username} 密码：${password}`)
                 req.session.username = username;
                 return res.status(200).send({ success: true, msg: '登录成功' });
             }
         }
+        LogMsg("登录失败，密码错误")
+        return res.status(403).send({ success: false, msg: '用户或密码错误' });
     })
 })
 
 //查询某设备详细信息，pass中
 adminRouter.post('/status_single', (req, res) => {
-    const Hostname = req.Hostname
+    if (!req.session.username){
+        return res.status(403).send({ success: false, msg: '未登录'});
+    }
+    const Hostname = req.body.Hostname
+    LogMsg(JSON.stringify(req.body))
+    LogMsg(`查询:${Hostname}`)
     //查询单个设备最新数据
     const query = `
     SELECT * FROM Devices
@@ -120,16 +121,23 @@ adminRouter.post('/status_single', (req, res) => {
         if (error) {
             // console.error('Error executing query: ' + error.stack);
             LogMsg('Error executing query: ' + error.stack)
-            return res.status(200).send({ success: false, msg: '查询失败' });;
+            return res.status(403).send({ success: false, msg: '查询失败' });;
         }
-        LogMsg("成功查询所有设备概略信息")
-        return res.status(200).send({ success: true, msg: '查询成功', results });
+        if (results == undefined || results == "") {
+            LogMsg(`查询失败，设备： ${Hostname}不存在`)
+            return res.status(403).send({ success: false, msg: '设备不存在' });
+        }
+        LogMsg(`成功查询设备：${Hostname} 信息：${results}`)
+        return res.status(200).send({ success: true, msg: '查询成功', results});
     });
 })
 
 //查询所有设备的信息
 adminRouter.get('/status_all', (req, res) => {
     //查询每一个设备时间戳最新的 系统信息和时间戳
+    if (!req.session.username){
+        return res.status(403).send({ success: false, msg: '未登录'});
+    }
     const query = `
     SELECT t1.System_Info, t1.Time_Stamp FROM Devices t1
     INNER JOIN (
@@ -146,16 +154,15 @@ adminRouter.get('/status_all', (req, res) => {
             return res.status(200).send({ success: false, msg: '查询失败' });;
         }
 
-        var data = results
         const time_now = new Date()
-        for (let i = 0; i < data.length; i++) {
-            if ((time_now - parseInt(data[i]['Time_Stamp']) / 1000000) > 30 * 1000) {
+        for (let i = 0; i < results.length; i++) {
+            if ((time_now - parseInt(results[i]['Time_Stamp']) / 1000000) > 30 * 1000) {
                 //未存活，5min
-                data[i]['live'] = 1
+                results[i]['live'] = 0
             }
             else {
                 //存活
-                data[i]['live'] = 1
+                results[i]['live'] = 1
             }
         }
         LogMsg("成功查询所有设备概略信息")
