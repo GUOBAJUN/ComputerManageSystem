@@ -107,7 +107,7 @@ adminRouter.post('/status_single', (req, res) => {
     if (!req.session.username){
         return res.status(403).send({ success: false, msg: '未登录'});
     }
-    const Hostname = req.body.hostname
+    const Hostname = req.body.Hostname
     LogMsg(JSON.stringify(req.body))
     LogMsg(`查询:${Hostname}`)
     //查询单个设备最新数据
@@ -127,7 +127,7 @@ adminRouter.post('/status_single', (req, res) => {
             LogMsg(`查询失败，设备： ${Hostname}不存在`)
             return res.status(403).send({ success: false, msg: '设备不存在' });
         }
-        LogMsg(`成功查询设备：${Hostname} 信息：${results}`)
+        LogMsg(`成功查询设备：${Hostname} 信息：${JSON.stringify(results)}`)
         return res.status(200).send({ success: true, msg: '查询成功', results});
     });
 })
