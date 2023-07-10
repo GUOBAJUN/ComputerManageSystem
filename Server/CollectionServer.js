@@ -4,6 +4,7 @@ const mysql = require('mysql')
 const config = require('./config');
 const bodyParser = require('body-parser');
 const cors = require('cors')
+const session = require('express-session');
 
 const db = mysql.createConnection(config.MySQLConnectionOption);
 const port = process.env.port || process.env.PORT || 10086
@@ -15,6 +16,8 @@ app.use(compression());
 app.use(cors());
 app.options('*', cors());
 
+
+var FileStore = require('session-file-store')(session);
 var sessionMiddleware = session({
     secret: '123456',
     store: new FileStore(),
@@ -51,9 +54,13 @@ agentRouter.post('/report', (req, res) => {
         total += Number.parseFloat(body["Disk Usage"][key]["Total"].replace("GB", ""))
     }
     Used_Rate = total_Used / total;
-    // console.log("磁盘总利用率：")
     var Used_Rate = Math.round(parseInt(Used_Rate * 1000)) / 10
-    // console.log(Used_Rate)
+
+    //发出CPU警告
+    if (parseFloat(body['CPU Usage']) > 0.1){
+        sio.emit("trap", {'type': "CPU_HIGH", 'data': body})
+    }
+
     //存入数据库
     db.query(`INSERT INTO Devices (Hostname, Time_Stamp, CPU_Usage, Memory_Usage, Swap_Usage, Disk_Usage, Network_Usage, Package_Loss_Rate, System_Info) VALUES(?,?,?,?,?,?,?,?,?)`,
         [body["System Info"]["Hostname"], body["Time Stamp"], body["CPU Usage"], body["Memory Usage"], body["Swap Usage"],
@@ -61,6 +68,7 @@ agentRouter.post('/report', (req, res) => {
                 if (err) throw err;
                 console.log(result);
             });
+    LogMsg("设备信息存储成功")
     return res.send('{success: true}');
 })
 
@@ -68,11 +76,10 @@ agentRouter.post('/report', (req, res) => {
 adminRouter.post('/login', (req, res) => {
     const username = req.body.username
     const password = req.body.password
-    // console.log("用户正在登录 用户名：%s 密码：%s", username, password);
-    LogMsg("处理登录请求：%s", username)
+    LogMsg(`处理登录请求：${username}`)
 
     // 处理请求数据并返回响应结果
-    db.get("SELECT * FROM Users WHERE username = ?", [username], function (err, row) {
+    db.query("SELECT * FROM Users WHERE username = ?", [username], function (err, row) {
         LogMsg("正在查询数据库......")
         if (err) {
             LogMsg(err)
@@ -90,7 +97,7 @@ adminRouter.post('/login', (req, res) => {
             }
             else {
                 //登陆成功建立会话
-                LogMsg("登录成功：%s", username)
+                LogMsg(`登录成功：${username}"`)
                 req.session.username = username;
                 return res.status(200).send({ success: true, msg: '登录成功' });
             }
@@ -137,13 +144,56 @@ adminRouter.get('/status_all', (req, res) => {
             LogMsg('Error executing query: ' + error.stack)
             return res.status(200).send({ success: false, msg: '查询失败' });;
         }
+
+        var data = results
+        const time_now = new Date()
+        for (let i = 0; i < data.length; i++) {
+            if ((time_now - parseInt(data[i]['Time_Stamp']) / 1000000) > 30 * 1000) {
+                //未存活，5min
+                data[i]['live'] = 1
+            }
+            else {
+                //存活
+                data[i]['live'] = 1
+            }
+        }
         LogMsg("成功查询所有设备概略信息")
+        LogMsg(JSON.stringify(results))
         return res.status(200).send({ success: true, msg: '查询成功', results });
     });
 })
 
 app.use('/', agentRouter);
 app.use('/admin', adminRouter);
-app.listen(port, () => {
+server = app.listen(port, () => {
     console.log('Web Server Up!')
+})
+
+const sio = require("socket.io")(server);
+
+sio.use((socket, next) => {
+    sessionMiddleware(socket.request, socket.request.res, next);
+});
+
+sio.on('connection', (socket) => {
+    LogMsg("用户 %s 正在连接socket", socket.request.session.username)
+
+    //连接的确认和分配玩家位
+    socket.on('ready', (data, callback) => {
+        LogMsg(`用户 ${socket.request.session.username} 连接成功`)
+        //记录登录信息
+        users.push({
+            name: socket.request.session.username,
+            socket: socket
+        });
+    })
+
+    socket.on("trap", function (data) {
+        data = JSON.parse(data)
+    })
+
+    //连接断开
+    socket.on('disconnect', (reason) => {
+        LogMsg(`Socket ${socket.id} disconnected with reason ${reason}`)
+    });
 })
