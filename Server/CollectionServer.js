@@ -107,7 +107,7 @@ adminRouter.post('/status_single', (req, res) => {
     if (!req.session.username){
         return res.status(403).send({ success: false, msg: '未登录'});
     }
-    const Hostname = req.body.Hostname
+    const Hostname = req.body.hostname
     LogMsg(JSON.stringify(req.body))
     LogMsg(`查询:${Hostname}`)
     //查询单个设备最新数据
@@ -115,7 +115,7 @@ adminRouter.post('/status_single', (req, res) => {
     SELECT * FROM Devices
     WHERE Hostname = '${Hostname}'
     ORDER BY Time_Stamp DESC
-    LIMIT 1;
+    LIMIT 10;
     `;
     db.query(query, (error, results, fields) => {
         if (error) {
