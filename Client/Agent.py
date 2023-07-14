@@ -63,6 +63,7 @@ class CollectingAgent():
     def report_performance(self):
         print('Collecting Infomation...')
         info = {}
+        info['Hostname'] = platform.node()
         info['Time Stamp'] = time.time_ns()
         info['CPU Usage'] = psutil.cpu_percent(interval=2)
         info['Memory Usage'] = f"{psutil.virtual_memory().percent}"
