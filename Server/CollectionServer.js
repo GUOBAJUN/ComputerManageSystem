@@ -83,9 +83,9 @@ agentRouter.post('/report/performance', (req, res) => {
     }
 
     //存入数据库
-    db.query(`INSERT INTO Devices (Hostname, Time_Stamp, CPU_Usage, Memory_Usage, Swap_Usage, Disk_Usage, Network_Usage, Package_Loss_Rate, System_Info) VALUES(?,?,?,?,?,?,?,?,?)`,
-        [body["System Info"]["Hostname"], body["Time Stamp"], body["CPU Usage"], body["Memory Usage"], body["Swap Usage"],
-        body["Disk Usage"], body["Network Usage"], body["Package Loss Rate"], JSON.stringify(body["System Info"])], (err, result) => {
+    db.query(`INSERT INTO Devices (Hostname, Time_Stamp, CPU_Usage, Memory_Usage, Swap_Usage, Disk_Usage, Network_Usage, Package_Loss_Rate) VALUES(?,?,?,?,?,?,?,?,?)`,
+        body["Hostname"], body["Time Stamp"], body["CPU Usage"], body["Memory Usage"], body["Swap Usage"],
+        body["Disk Usage"], body["Network Usage"], body["Package Loss Rate"], (err, result) => {
             if (err) {
                 LogMsg(err)
                 return res.status(403).send('{seccess: false}');
