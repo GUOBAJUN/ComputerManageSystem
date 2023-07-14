@@ -42,38 +42,7 @@ function LogMsg(msg) {
     console.log(`[${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}]${msg}`);
 }
 
-//提供给agent，上传设备信息
-agentRouter.post('/report', (req, res) => {
-    LogMsg("接收设备信息")
-    const body = req.body;
-    //处理磁盘利用率
-    var total = 0;
-    var total_Used = 0;
-    for (let key in body["Disk Usage"]) {
-        console.log(total)
-        total_Used += Number.parseFloat(body["Disk Usage"][key]["Used"].replace("GB", ""))
-        total += Number.parseFloat(body["Disk Usage"][key]["Total"].replace("GB", ""))
-    }
-    Used_Rate = total_Used / total;
-    var Used_Rate = Math.round(parseInt(Used_Rate * 1000)) / 10
-
-    //发出CPU警告
-    if (parseFloat(body['CPU Usage']) > 0.1) {
-        sio.emit("trap", { 'type': "CPU_HIGH", 'data': body })
-    }
-
-    //存入数据库
-    db.query(`INSERT INTO Devices (Hostname, Time_Stamp, CPU_Usage, Memory_Usage, Swap_Usage, Disk_Usage, Network_Usage, Package_Loss_Rate, System_Info) VALUES(?,?,?,?,?,?,?,?,?)`,
-        [body["System Info"]["Hostname"], body["Time Stamp"], body["CPU Usage"], body["Memory Usage"], body["Swap Usage"],
-            Used_Rate, body["Network Usage"], body["Package Loss Rate"], JSON.stringify(body["System Info"])], (err, result) => {
-                if (err) throw err;
-                console.log(result);
-            });
-    LogMsg("设备信息存储成功")
-    return res.send('{success: true}');
-})
-
-//提供给manager，登录
+//提供给manager, 登录
 adminRouter.post('/login', (req, res) => {
     const username = req.body.Account
     const password = req.body.Password
@@ -102,10 +71,78 @@ adminRouter.post('/login', (req, res) => {
     })
 })
 
+//提供给agent, 上传设备信息
+agentRouter.post('/report/performance', (req, res) => {
+    LogMsg("接收设备信息:performance")
+    const body = req.body;
+    LogMsg(body)
+
+    //发出CPU警告
+    if (parseFloat(body['CPU Usage']) > 0.1) {
+        sio.emit("trap", { 'type': "CPU_HIGH", 'data': body })
+    }
+
+    //存入数据库
+    db.query(`INSERT INTO Devices (Hostname, Time_Stamp, CPU_Usage, Memory_Usage, Swap_Usage, Disk_Usage, Network_Usage, Package_Loss_Rate, System_Info) VALUES(?,?,?,?,?,?,?,?,?)`,
+        [body["System Info"]["Hostname"], body["Time Stamp"], body["CPU Usage"], body["Memory Usage"], body["Swap Usage"],
+        body["Disk Usage"], body["Network Usage"], body["Package Loss Rate"], JSON.stringify(body["System Info"])], (err, result) => {
+            if (err) {
+                LogMsg(err)
+                return res.status(403).send('{seccess: false}');
+            }
+            LogMsg(result);
+        });
+    LogMsg("设备信息存储成功")
+    return res.status(200).send('{success: true}');
+})
+
+//提供给agent, 上传设备信息
+agentRouter.post('/report/systeminfo', (req, res) => {
+    LogMsg("接收设备信息:systeminfo")
+    const body = req.body;
+    LogMsg(`接收系统信息：${body}`)
+    //查询旧数据
+    db.query("SELECT * FROM Devices_System WHERE Username = ?", [body['Hostname']], function (err, rows) {
+        LogMsg("正在查询系统信息数据库......")
+        if (err) {
+            LogMsg(`查询系统数据出现错误: ${err}`)
+            return res.status(403).send({ success: false, msg: '失败' });;
+        }
+        if (rows == undefined || rows == "") {
+            LogMsg(`设备：${body['Hostname']}未录入系统，正在录入系统数据库`)
+            db.query(`INSERT INTO Devices_System (Hostname, Time_Stamp, OS_Name, OS_Version, OS_Arch, CPU_Name, RAM) VALUES(?,?,?,?,?,?,?)`,
+                [body["Hostname"], body["Time_Stamp"], body["OS_Name"], body["OS_Version"], body["OS_Arch"],
+                body["CPU_Name"], body["RAM"]], (err, result) => {
+                    if (err) throw err;
+                    LogMsg(result);
+                });
+            return res.status(200).send({ success: false });
+        }
+        else {
+            db.query(`UPDATE Devices_System SET 
+            Time_Stamp = ${body["Time_Stamp"]}, OS_Name = ${body["OS_Name"]}, OS_Version = ${body["OS_Version"]}, 
+            OS_Arch  ${body["OS_Arch"]}, CPU_Name = ${body["CPU_Name"]}, RAM = ${body["RAM"]} WHERE Hostname = ${body["Hostname"]} `,
+                (err, result) => {
+                    if (err) throw err;
+                    LogMsg(result);
+                });
+            LogMsg(`系统:${body["Hostname"]}信息更新成功`)
+            return res.status(200).send({ success: false });
+        }
+    })
+
+    //存入数据库
+
+    LogMsg("设备信息存储成功")
+    return res.send('{success: true}');
+})
+
+
+
 //查询某设备详细信息，pass中
 adminRouter.post('/status_single', (req, res) => {
-    if (!req.session.username){
-        return res.status(403).send({ success: false, msg: '未登录'});
+    if (!req.session.username) {
+        return res.status(403).send({ success: false, msg: '未登录' });
     }
     const Hostname = req.body.Hostname
     LogMsg(JSON.stringify(req.body))
@@ -128,15 +165,15 @@ adminRouter.post('/status_single', (req, res) => {
             return res.status(403).send({ success: false, msg: '设备不存在' });
         }
         LogMsg(`成功查询设备：${Hostname} 信息：${JSON.stringify(results)}`)
-        return res.status(200).send({ success: true, msg: '查询成功', results});
+        return res.status(200).send({ success: true, msg: '查询成功', results });
     });
 })
 
 //查询所有设备的信息
 adminRouter.get('/status_all', (req, res) => {
     //查询每一个设备时间戳最新的 系统信息和时间戳
-    if (!req.session.username){
-        return res.status(403).send({ success: false, msg: '未登录'});
+    if (!req.session.username) {
+        return res.status(403).send({ success: false, msg: '未登录' });
     }
     const query = `
     SELECT t1.System_Info, t1.Time_Stamp FROM Devices t1
@@ -153,7 +190,6 @@ adminRouter.get('/status_all', (req, res) => {
             LogMsg('Error executing query: ' + error.stack)
             return res.status(403).send({ success: false, msg: '查询失败' });;
         }
-
         const time_now = new Date()
         for (let i = 0; i < results.length; i++) {
             if ((time_now - parseInt(results[i]['Time_Stamp']) / 1000000) > 30 * 1000) {
