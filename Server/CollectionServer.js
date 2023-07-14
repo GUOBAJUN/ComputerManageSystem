@@ -6,6 +6,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors')
 const session = require('express-session');
 var dgram = require('dgram');
+const crypto = require('crypto');
 
 const db = mysql.createConnection(config.MySQLConnectionOption);
 
@@ -36,6 +37,8 @@ var sessionMiddleware = session({
 })
 app.use(sessionMiddleware);
 
+session_list = []
+
 const agentRouter = new express.Router()
 const adminRouter = new express.Router()
 
@@ -44,35 +47,43 @@ function LogMsg(msg) {
     console.log(`[${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}]${msg}`);
 }
 
-function Trap(session_list, SendBuff){
-    var udp_client = dgram.createSocket('udp4'); 
+function Trap(session_list, SendBuff) {
+    var udp_client = dgram.createSocket('udp4');
     //通过session获取ip池, 然后发送
     ip_list = []
     var SendLen = SendBuff.length;
     for (let i = session_list.length - 1; i >= 0; i--) {
         // if (!session_list[i].cookie.expires || req.session.cookie.expires < new Date()){
         //删除过期session
-        if (!session_list[i].cookie.expires) {
+        if (!session_list[i].cookie.expires || !session_list[i].username) {
             session_list = session_list.filter(function (item) {
                 return item !== session_list[i]
             });
         }
-        else{
-            ip_list.append(session_list[i].ip)
+        else {
+            ip_list.push(session_list[i].ip)
         }
     }
-    for (let i = 0; i < ip_list.length; i++){
+    for (let i = 0; i < ip_list.length; i++) {
+        LogMsg(`发送trap报文: ${SendBuff}, ip: ${ip_list[i]}`)
         udp_client.send(SendBuff, 0, SendLen, 10087, ip_list[i]);
     }
 }
 
-session_list = []
+
 
 //提供给manager, 登录
 adminRouter.post('/login', (req, res) => {
     const username = req.body.Account
-    const password = req.body.Password
-    LogMsg(`处理登录请求：账号：${username} 密码：${password}`,)
+    var password = req.body.Password
+
+    // 签名对象
+    let obj = crypto.createHash('md5');
+    // 加密数据
+    var en_password = obj.update(password).digest('hex');
+    // 以十六进制返回结果
+
+    LogMsg(`处理登录请求：账号：${username} 密码：${en_password}`,)
 
     // 处理请求数据并返回响应结果
     db.query("SELECT * FROM Users WHERE Username = ?", [username], function (err, rows) {
@@ -86,11 +97,12 @@ adminRouter.post('/login', (req, res) => {
             return res.status(403).send({ success: false, msg: '用户或密码错误' });
         }
         for (let i = 0; i < rows.length; i++) {
-            if (rows[i].Password == password) {
-                LogMsg(`登录成功，账号：${username} 密码：${password}`)
+            if (rows[i].Password == en_password) {
+                LogMsg(`登录成功，账号：${username} 密码：${en_password} ip: ${req.ip}`)
                 req.session.username = username;
-                req.session.ip = req.ip
-                session_list.append(req.session)
+                req.session.ip = req.ip.substring(7, req.ip.length)
+                session_list.push(req.session)
+                LogMsg(`session_list`)
                 return res.status(200).send({ success: true, msg: '登录成功' });
             }
         }
@@ -99,15 +111,28 @@ adminRouter.post('/login', (req, res) => {
     })
 })
 
+adminRouter.post('/logout', (req, res) => {
+    req.session.username = null;
+})
+
 //提供给agent, 上传设备信息
 agentRouter.post('/report/performance', (req, res) => {
     LogMsg("接收设备信息:performance")
     const body = req.body;
 
     //发出CPU警告
-    if (parseFloat(body['CPU Usage']) > 0) {
-        LogMsg(`CPU警告: ${body['CPU Usage']}`)
+    if (parseFloat(body['CPU Usage']) > 80) {
         var SendBuff = JSON.stringify({ type: "CPU_high", Hostname: body["Hostname"], data: body['CPU Usage'] })
+        Trap(session_list, SendBuff)
+    }
+    //发出Memory警告
+    if (parseFloat(body["Memory Usage"]) > 80) {
+        var SendBuff = JSON.stringify({ type: "Memory_high", Hostname: body["Hostname"], data: body['Memory Usage'] })
+        Trap(session_list, SendBuff)
+    }
+    //发出Network警告
+    if (parseFloat(body["Network Usage"]) > 80) {
+        var SendBuff = JSON.stringify({ type: "Network_high", Hostname: body["Hostname"], data: parseFloat(body['Network Usage']) })
         Trap(session_list, SendBuff)
     }
 
@@ -117,10 +142,9 @@ agentRouter.post('/report/performance', (req, res) => {
         JSON.stringify(body["Disk Usage"]), body["Network Usage"], body["Package Loss Rate"]], (err, result) => {
             if (err) {
                 LogMsg(err)
-                return res.status(403).send('{seccess: false}');
+                return res.status(403).send('{success: false}');
             }
             else {
-                LogMsg(result);
                 LogMsg("设备信息存储成功")
                 return res.status(200).send('{success: true}');
             }
@@ -333,7 +357,7 @@ adminRouter.get('/dashboard', (req, res) => {
                 //平均内存利用率
                 //最大网络利用率
                 if (results[i]['live'] == 1) {
-                    if (parseFloat(results[i]["Network_Usage"]) > net_maxs) {
+                    if (parseFloat(results[i]["Network_Usage"]) > net_max) {
                         net_max = parseFloat(results[i]["Network_Usage"])
                     }
                     if (parseFloat(results[i]["Network_Usage"]) >= 80) {
@@ -343,25 +367,31 @@ adminRouter.get('/dashboard', (req, res) => {
                         net_less_30++
                     }
                     CPU_avg += parseFloat(results[i]["CPU_Usage"])
-                    CPU_avg += parseFloat(results[i]["Memory_Usage"])
+                    Memory_avg += parseFloat(results[i]["Memory_Usage"])
                     num++
                 }
                 //总磁盘占用率
-                for (let key in results[i]["Disk Usage"]) {
-                    Disk_Used += Number.parseFloat(results["Disk Usage"][key]["Used"].replace("GB", ""))
-                    Disk_total += Number.parseFloat(results["Disk Usage"][key]["Total"].replace("GB", ""))
+                xx = JSON.parse(results[i]["Disk_Usage"])
+                for (const [key, value] of Object.entries(xx)) {
+                    LogMsg(`Key: ${key}, Value: ${value}`)
+                    Disk_Used += Number.parseFloat(xx[key]["Used"].replace("GB", ""))
+                    Disk_total += Number.parseFloat(xx[key]["Total"].replace("GB", ""))
                 }
-                Used_Rate = total_Used / total;
-                var Used_Rate = Math.round(parseInt(Used_Rate * 1000)) / 10
             }
             CPU_avg = CPU_avg / num
             Memory_avg = Memory_avg / num
             Used_Rate = Disk_Used / Disk_total;
             Used_Rate = Math.round(parseInt(Used_Rate * 1000)) / 10
 
-            LogMsg(`成功查询仪表盘信息: Network_Usage: ${net_max}, net_more_80: ${net_more_80}, net_less_30: ${net_less_30}
-                                        CPU_Usage: ${CPU_avg}, Memory_Usage: ${Memory_avg}, Disk_Usage: ${Used_Rate}, 
-                                        alive: ${num}`)
+            LogMsg(`成功查询仪表盘信息: 
+                    Network_Usage: ${net_max}, 
+                    net_more_80: ${net_more_80}, 
+                    net_less_30: ${net_less_30}                    
+                    CPU_Usage: ${CPU_avg}, 
+                    Memory_Usage: ${Memory_avg}, 
+                    Disk_Usage: ${Used_Rate}, 
+                    alive: ${num},
+                    Total: ${results.length}`)
             return res.status(200).send({
                 success: true,
                 msg: '查询成功',
@@ -371,7 +401,8 @@ adminRouter.get('/dashboard', (req, res) => {
                 Disk_Usage: Used_Rate,
                 alive: num,//网络中30< <80
                 net_more_80: net_more_80,
-                net_less_30: net_less_30
+                net_less_30: net_less_30,
+                Total: results.length
             });
         }
     });

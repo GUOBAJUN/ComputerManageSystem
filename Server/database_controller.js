@@ -1,7 +1,13 @@
 const mysql = require('mysql');
 const config = require('./config')
+const bodyParser = require('body-parser');
 
 const db = mysql.createConnection(config.MySQLConnectionOption);
+
+function LogMsg(msg) {
+    let date = new Date()
+    console.log(`[${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}]${msg}`);
+}
 
 db.connect((err) => {
     if (err) {
@@ -59,9 +65,18 @@ db.connect((err) => {
 
 // });
 
+
+const crypto = require('crypto');
+// 签名对象
+let obj = crypto.createHash('md5');
+// 加密数据
+obj.update('admin');
+// 以十六进制返回结果
+let str = obj.digest('hex');
+
 // db.query(`
 //   INSERT INTO Users (id, Username, Password, Permission, Department, Father) VALUES (?, ?, ?, ?, ?, ?)
-// `, [0, "root", "admin", "root", "root", "NULL"], (err) => {
+// `, [0, "root", str, "root", "root", "NULL"], (err) => {
 //   if (err) {
 //     console.log(err)
 //     //throw err;
@@ -135,12 +150,23 @@ db.connect((err) => {
 //   console.log('Query results:', data);
 // });
 
-// db.query(`SELECT * FROM Users`, (err, results, fields) => {
-//   if (err) {
-//     console.log(err)
-//     //throw err;
-//   }
-//   console.log(results);
+
+db.query(`SELECT * FROM Users`, (err, results, fields) => {
+    if (err) {
+        console.log(err)
+        //throw err;
+    }
+    console.log(results);
+});
+
+
+
+// db.query(`DELETE FROM Users WHERE Username = ?`, "root",(err, results, fields) => {
+//     if (err) {
+//         console.log(err)
+//         //throw err;
+//     }
+//     console.log(results);
 // });
 
 // db.query(`
@@ -163,34 +189,34 @@ db.connect((err) => {
 // }
 // )
 
-const query = `
-    SELECT * FROM Devices t1
-    INNER JOIN (
-        SELECT Hostname, MAX(Time_Stamp) AS max_timestamp
-        FROM Devices
-        GROUP BY Hostname
-    ) t2
-    ON t1.Hostname = t2.Hostname AND t1.Time_Stamp = t2.max_timestamp;
-  `;
-db.query(query, (error, results, fields) => {
-    if (error) {
-        console.error('Error executing query: ' + error.stack);
-    }
-    else {
-        const time_now = new Date()
-        for (let i = 0; i < results.length; i++) {
-            if ((time_now - parseInt(results[i]['Time_Stamp']) / 1000000) > 30 * 1000) {
-                //未存活，5min
-                results[i]['live'] = 0
-            }
-            else {
-                //存活
-                results[i]['live'] = 1
-            }
-        }
-        console.log(results)
-    }
-});
+// const query = `
+//     SELECT * FROM Devices t1
+//     INNER JOIN (
+//         SELECT Hostname, MAX(Time_Stamp) AS max_timestamp
+//         FROM Devices
+//         GROUP BY Hostname
+//     ) t2
+//     ON t1.Hostname = t2.Hostname AND t1.Time_Stamp = t2.max_timestamp;
+//   `;
+// db.query(query, (error, results, fields) => {
+//     if (error) {
+//         console.error('Error executing query: ' + error.stack);
+//     }
+//     else {
+//         const time_now = new Date()
+//         for (let i = 0; i < results.length; i++) {
+//             if ((time_now - parseInt(results[i]['Time_Stamp']) / 1000000) > 30 * 1000) {
+//                 //未存活，5min
+//                 results[i]['live'] = 0
+//             }
+//             else {
+//                 //存活
+//                 results[i]['live'] = 1
+//             }
+//         }
+//         console.log(results)
+//     }
+// });
 
 // Hostname = "DESKTOP-I6JAGL6"
 // const query = `SELECT * FROM Devices WHERE Hostname = ?`
@@ -202,3 +228,86 @@ db.query(query, (error, results, fields) => {
 //         console.log(rows)
 //     }
 // });
+
+
+// const query = `
+//     SELECT * FROM Devices t1
+//     INNER JOIN (
+//         SELECT Hostname, MAX(Time_Stamp) AS max_timestamp
+//         FROM Devices
+//         GROUP BY Hostname
+//     ) t2
+//     ON t1.Hostname = t2.Hostname AND t1.Time_Stamp = t2.max_timestamp;
+//   `;
+// db.query(query, (error, results, fields) => {
+//     // results = JSON.parse(results)
+//     if (error) {
+//         // console.error('Error executing query: ' + error.stack);
+//         LogMsg('Error executing query: ' + error.stack)
+//         return res.status(503).send({ success: false, msg: '查询失败' });;
+//     }
+//     else {
+//         const time_now = new Date()
+//         for (let i = 0; i < results.length; i++) {
+//             if ((time_now - parseInt(results[i]['Time_Stamp']) / 1000000) > 30 * 1000) {
+//                 //未存活，5min
+//                 results[i]['live'] = 0
+//             }
+//             else {
+//                 //存活
+//                 results[i]['live'] = 1
+//             }
+//         }
+
+//         //CPU平均使用率 //平均内存利用率 //总磁盘占用率 //最大网络利用率
+//         net_max = 0.0
+//         net_more_80 = 0
+//         net_less_30 = 0
+//         CPU_avg = 0.0
+//         Memory_avg = 0.0
+//         num = 0
+//         Disk_total = 0.0;
+//         Disk_Used = 0.0;
+//         for (let i = 0; i < results.length; i++) {
+//             //CPU平均使用率
+//             //平均内存利用率
+//             //最大网络利用率
+//             LogMsg(results[i]["Disk_Usage"])
+//             if (results[i]['live'] == 1) {
+//                 if (parseFloat(results[i]["Network_Usage"]) > net_max) {
+//                     net_max = parseFloat(results[i]["Network_Usage"])
+//                 }
+//                 if (parseFloat(results[i]["Network_Usage"]) >= 80) {
+//                     net_more_80++
+//                 }
+//                 if (parseFloat(results[i]["Network_Usage"]) <= 30) {
+//                     net_less_30++
+//                 }
+//                 CPU_avg += parseFloat(results[i]["CPU_Usage"])
+//                 CPU_avg += parseFloat(results[i]["Memory_Usage"])
+//                 num++
+//             }
+//             //总磁盘占用率
+//             // for (key in results[i]["Disk_Usage"].keys()) {
+//             xx = JSON.parse(results[i]["Disk_Usage"])
+//             for (const [key, value] of Object.entries(xx)) {
+//                 LogMsg(`Key: ${key}, Value: ${value}`)
+//                 Disk_Used += Number.parseFloat(xx[key]["Used"].replace("GB", ""))
+//                 Disk_total += Number.parseFloat(xx[key]["Total"].replace("GB", ""))
+//             }
+//         }
+//         CPU_avg = CPU_avg / num
+//         Memory_avg = Memory_avg / num
+//         Used_Rate = Disk_Used / Disk_total;
+//         Used_Rate = Math.round(parseInt(Used_Rate * 1000)) / 10
+
+//         LogMsg(`成功查询仪表盘信息:
+//                     Network_Usage: ${net_max},
+//                     net_more_80: ${net_more_80},
+//                     net_less_30: ${net_less_30}
+//                     CPU_Usage: ${CPU_avg},
+//                     Memory_Usage: ${Memory_avg},
+//                     Disk_Usage: ${Used_Rate},
+//                     alive: ${num}`)
+//     }
+// })
