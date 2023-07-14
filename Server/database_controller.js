@@ -38,7 +38,7 @@ db.connect((err) => {
 // })
 
 // db.query(`
-//   DROP TABLE Devices_System ;
+//   DROP TABLE Users ;
 // `, (err) => {
 //   if (err) {
 //     console.log(err)
@@ -52,7 +52,7 @@ db.connect((err) => {
 //     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
 //     Username VARCHAR(255) NOT NULL,
 //     Password VARCHAR(255) NOT NULL,
-//     Permission VARCHAR(255) NOT NULL,
+//     Permission VARCHAR(255) DEFAULT 1 NOT NULL,
 //     Department VARCHAR(255) NOT NULL,
 //     Father VARCHAR(255) NOT NULL
 //   )
@@ -169,26 +169,26 @@ db.connect((err) => {
 //     console.log(results);
 // });
 
-db.query(`
-  CREATE TABLE IF NOT EXISTS Devices_System (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    Hostname VARCHAR(255) NOT NULL,
-    Time_Stamp VARCHAR(255) NOT NULL,
-    OS_Name VARCHAR(255) NOT NULL,
-    OS_Version VARCHAR(255) NOT NULL,
-    OS_Arch VARCHAR(255) NOT NULL,
-    CPU_Name VARCHAR(255) NOT NULL,
-    RAM VARCHAR(255) NOT NULL,
-    LEVEL VARCHAR(255) DEFAULT 5 NOT NULL
-  )
-`, (err) => {
-  if (err) {
-    console.log(err)
-    //throw err;
-  }
-  console.log('Table created!');
-}
-)
+// db.query(`
+//   CREATE TABLE IF NOT EXISTS Devices_System (
+//     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+//     Hostname VARCHAR(255) NOT NULL,
+//     Time_Stamp VARCHAR(255) NOT NULL,
+//     OS_Name VARCHAR(255) NOT NULL,
+//     OS_Version VARCHAR(255) NOT NULL,
+//     OS_Arch VARCHAR(255) NOT NULL,
+//     CPU_Name VARCHAR(255) NOT NULL,
+//     RAM VARCHAR(255) NOT NULL,
+//     LEVEL VARCHAR(255) DEFAULT 5 NOT NULL
+//   )
+// `, (err) => {
+//   if (err) {
+//     console.log(err)
+//     //throw err;
+//   }
+//   console.log('Table created!');
+// }
+// )
 
 // const query = `
 //     SELECT * FROM Devices t1

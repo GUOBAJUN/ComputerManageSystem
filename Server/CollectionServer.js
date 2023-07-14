@@ -87,7 +87,7 @@ adminRouter.post('/login', (req, res) => {
         LogMsg("正在查询数据库......")
         if (err) {
             LogMsg(`查询出现错误: ${err}`)
-            return res.status(403).send({ success: false, msg: '查询错误' });;
+            return res.status(503).send({ success: false, msg: '查询错误' });;
         }
         if (rows == undefined || rows == "") {
             LogMsg(`登录失败，用户名${username}不存在`)
@@ -97,10 +97,11 @@ adminRouter.post('/login', (req, res) => {
             if (rows[i].Password == en_password) {
                 LogMsg(`登录成功，账号：${username} 密码：${en_password} ip: ${req.ip}`)
                 req.session.username = username;
+                req.session.level = rows[i]["Permission"];
                 req.session.ip = req.ip.substring(7, req.ip.length)
+                //当前的用户session
                 session_list.push(req.session)
-                LogMsg(`session_list`)
-                return res.status(200).send({ success: true, msg: '登录成功' });
+                return res.status(200).send({ success: true, msg: '登录成功', permission: rows[i]["Permission"] });
             }
         }
         LogMsg("登录失败，密码错误")
@@ -150,39 +151,81 @@ agentRouter.post('/report/performance', (req, res) => {
 
 //提供给agent, 上传设备信息
 agentRouter.post('/admin/config', (req, res) => {
+    const username = req.session.username;
+    const self_level = req.session.level
     const type = req.type;
     const level = req.level;
     const target = req.target;
-    LogMsg(`修改权限: ${JSON.stringify(target)} level: ${level}`)
+
+    LogMsg(`${username}修改权限请求: ${JSON.stringify(target)} level: ${level}`)
     //查询旧数据
-    if (type == "device"){
-        db.query(`UPDATE Devices_System SET LEVEL = ? WHERE Hostname = ? `,
-        [level, target],
-        (err, result) => {
-            if (err) {
-                LogMsg(`修改权限错误: ${err}`);
-                return res.status(503).send({success: false, msg: "修改失败"});
-            }
-            else{
-                LogMsg(`修改权限成功`);
-                return res.status(200).send({success: true, msg: "修改成功"});
-            }    
-        });
-    }
-    else {
-        db.query(`UPDATE Users SET Permission = ? WHERE Username = ? `,
-        [level, target],
-        (err, result) => {
-            if (err) {
-                LogMsg(`修改权限错误: ${err}`);
-                return res.status(503).send({success: false, msg: "修改失败"});
-            }
-            else{
-                LogMsg(`修改权限成功`);
-                return res.status(200).send({success: true, msg: "修改成功"});
-            }    
-        });
-    }
+
+    const promise = new Promise((resolve, reject) => {
+        if (type == "device") {
+            db.query("SELECT LEVEL FROM Devices_System WHERE Hostname = ?", [target], function (err, tar_level) {
+                if (err) {
+                    LogMsg(`查询权限失败: ${err}`)
+                    reject("查询失败")
+                }
+                else if (parseInt(tar_level) > parseInt(self_level)) {
+                    LogMsg(`${username} 权限不足`)
+                    reject("权限不足")
+                }
+                else {
+                    LogMsg(`${username} 权限足够，准备修改`)
+                    resolve()
+                }
+            })
+        }
+        else {
+            db.query("SELECT Permission FROM Users WHERE Username = ?", [target], function (err, tar_level) {
+                if (err) {
+                    LogMsg(`查询权限失败: ${err}`)
+                    reject("查询失败")
+                }
+                else if (parseInt(tar_level) > parseInt(self_level)) {
+                    LogMsg(`${username} 权限不足`)
+                    reject("权限不足")
+                }
+                else {
+                    LogMsg(`${username} 权限足够，准备修改`)
+                    resolve()
+                }
+            })
+        }
+    })
+    promise.then(result => {
+        if (type == "device") {
+            db.query(`UPDATE Devices_System SET LEVEL = ? WHERE Hostname = ? `,
+                [level, target],
+                (err, result) => {
+                    if (err) {
+                        LogMsg(`修改权限错误: ${err}`);
+                        return res.status(503).send({ success: false, msg: "修改失败" });
+                    }
+                    else {
+                        LogMsg(`修改权限成功`);
+                        return res.status(200).send({ success: true, msg: "修改成功" });
+                    }
+                });
+        }
+        else {
+            db.query(`UPDATE Users SET Permission = ? WHERE Username = ? `,
+                [level, target],
+                (err, result) => {
+                    if (err) {
+                        LogMsg(`修改权限错误: ${err}`);
+                        return res.status(503).send({ success: false, msg: "修改失败" });
+                    }
+                    else {
+                        LogMsg(`修改权限成功`);
+                        return res.status(200).send({ success: true, msg: "修改成功" });
+                    }
+                });
+        }
+    }).catch(error => {
+        return res.status(403).send({ success: false, msg: error});
+    });
 })
 
 //提供给agent, 上传设备信息
@@ -246,7 +289,6 @@ agentRouter.post('/report/systeminfo', (req, res) => {
         LogMsg(`错误`)
         return res.status(403).send({ success: false });
     });
-
 })
 
 //查询某设备详细信息，pass中
