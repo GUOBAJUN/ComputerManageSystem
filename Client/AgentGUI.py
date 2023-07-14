@@ -15,24 +15,25 @@ from UI.Ui_mainwindow import Ui_Mainwindow
 path = os.path.abspath(__file__)
 filePath = os.path.dirname(path)
 
-
-class BackgroundWorker(QThread):
-    def __init__(self, agent: Agent.CollectingAgent | None = ..., parent: QObject | None = ...) -> None:
-        super().__init__()
+class PerformanceWorker(QThread):
+    def __init__(self, parent: QObject | None = ..., agent: Agent.CollectingAgent | None = ...) -> None:
+        super().__init__(parent)
         self.agent = agent
-        self.performance_timer = QTimer(self)
-        self.performance_timer.timeout.connect(self.agent.report_performance)
-        self.systeminfo_timer = QTimer(self)
-        self.systeminfo_timer.timeout.connect(self.agent.report_system_info)
+    
+    def run(self):
+        self.agent.report_performance()
+    
+    def cancel(self):
+        self.agent.cancelled = True
+
+class SysteminfoWorker(QThread):
+    def __init__(self, parent: QObject | None = ..., agent: Agent.CollectingAgent | None = ...) -> None:
+        super().__init__(parent)
+        self.agent = agent
 
     def run(self):
         self.agent.report_system_info()
-        self.agent.report_performance()
-        self.performance_timer.start(10*1000)
-        self.systeminfo_timer.start(30*24*60*60*1000)
 
-    def cancel(self):
-        self.agent.cancelled = True
 
 
 class MainWindow(Ui_Mainwindow, AcrylicWindow):
@@ -50,11 +51,19 @@ class MainWindow(Ui_Mainwindow, AcrylicWindow):
         self.setWindowTitle('System Status Collecting Agent')
 
         # 创建Agent实例
-        self.agent = Agent.CollectingAgent('http://127.0.0.1/report')
-        self.worker = BackgroundWorker(agent=self.agent)
+        self.agent = Agent.CollectingAgent('http://192.168.43.82:10086/')
+        self.siWorker = SysteminfoWorker(self, self.agent)
+        self.pfWorker = PerformanceWorker(self, self.agent)
 
         # 启动BackgroundWorker
-        self.worker.start()
+        self.siWorker.start()
+        self.pfWorker.start()
+        self.siTimer = QTimer(self)
+        self.siTimer.timeout.connect(self.siWorker.start)
+        self.siTimer.start(10*24*60*60*1000)
+        self.pfTimer = QTimer(self)
+        self.pfTimer.timeout.connect(self.pfWorker.start)
+        self.pfTimer.start(10*1000)
 
 
     def EditBtn_Clicked(self):

@@ -103,6 +103,7 @@ class CollectingAgent():
         i = 0
         while i < 11:
             try:
+                print(self.MASTER+'report/performance')
                 response = requests.post(
                     url=self.MASTER+'report/performance', headers=headers, data=json.dump(info))
                 if response.status_code == 200:
