@@ -19,7 +19,6 @@ app.use(compression());
 app.use(cors());
 app.options('*', cors());
 
-
 var FileStore = require('session-file-store')(session);
 
 var sessionMiddleware = session({
@@ -69,8 +68,6 @@ function Trap(session_list, SendBuff) {
         udp_client.send(SendBuff, 0, SendLen, 10087, ip_list[i]);
     }
 }
-
-
 
 //提供给manager, 登录
 adminRouter.post('/login', (req, res) => {
@@ -151,6 +148,42 @@ agentRouter.post('/report/performance', (req, res) => {
         });
 })
 
+//提供给agent, 上传设备信息
+agentRouter.post('/admin/config', (req, res) => {
+    const type = req.type;
+    const level = req.level;
+    const target = req.target;
+    LogMsg(`修改权限: ${JSON.stringify(target)} level: ${level}`)
+    //查询旧数据
+    if (type == "device"){
+        db.query(`UPDATE Devices_System SET LEVEL = ? WHERE Hostname = ? `,
+        [level, target],
+        (err, result) => {
+            if (err) {
+                LogMsg(`修改权限错误: ${err}`);
+                return res.status(503).send({success: false, msg: "修改失败"});
+            }
+            else{
+                LogMsg(`修改权限成功`);
+                return res.status(200).send({success: true, msg: "修改成功"});
+            }    
+        });
+    }
+    else {
+        db.query(`UPDATE Users SET Permission = ? WHERE Username = ? `,
+        [level, target],
+        (err, result) => {
+            if (err) {
+                LogMsg(`修改权限错误: ${err}`);
+                return res.status(503).send({success: false, msg: "修改失败"});
+            }
+            else{
+                LogMsg(`修改权限成功`);
+                return res.status(200).send({success: true, msg: "修改成功"});
+            }    
+        });
+    }
+})
 
 //提供给agent, 上传设备信息
 agentRouter.post('/report/systeminfo', (req, res) => {
@@ -215,7 +248,6 @@ agentRouter.post('/report/systeminfo', (req, res) => {
     });
 
 })
-
 
 //查询某设备详细信息，pass中
 adminRouter.post('/status_single', (req, res) => {

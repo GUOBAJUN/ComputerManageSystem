@@ -38,7 +38,7 @@ db.connect((err) => {
 // })
 
 // db.query(`
-//   DROP TABLE Devices ;
+//   DROP TABLE Devices_System ;
 // `, (err) => {
 //   if (err) {
 //     console.log(err)
@@ -66,13 +66,13 @@ db.connect((err) => {
 // });
 
 
-const crypto = require('crypto');
-// 签名对象
-let obj = crypto.createHash('md5');
-// 加密数据
-obj.update('admin');
-// 以十六进制返回结果
-let str = obj.digest('hex');
+// const crypto = require('crypto');
+// // 签名对象
+// let obj = crypto.createHash('md5');
+// // 加密数据
+// obj.update('admin');
+// // 以十六进制返回结果
+// let str = obj.digest('hex');
 
 // db.query(`
 //   INSERT INTO Users (id, Username, Password, Permission, Department, Father) VALUES (?, ?, ?, ?, ?, ?)
@@ -151,13 +151,13 @@ let str = obj.digest('hex');
 // });
 
 
-db.query(`SELECT * FROM Users`, (err, results, fields) => {
-    if (err) {
-        console.log(err)
-        //throw err;
-    }
-    console.log(results);
-});
+// db.query(`SELECT * FROM Users`, (err, results, fields) => {
+//     if (err) {
+//         console.log(err)
+//         //throw err;
+//     }
+//     console.log(results);
+// });
 
 
 
@@ -169,25 +169,26 @@ db.query(`SELECT * FROM Users`, (err, results, fields) => {
 //     console.log(results);
 // });
 
-// db.query(`
-//   CREATE TABLE IF NOT EXISTS Devices_System (
-//     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-//     Hostname VARCHAR(255) NOT NULL,
-//     Time_Stamp VARCHAR(255) NOT NULL,
-//     OS_Name VARCHAR(255) NOT NULL,
-//     OS_Version VARCHAR(255) NOT NULL,
-//     OS_Arch VARCHAR(255) NOT NULL,
-//     CPU_Name VARCHAR(255) NOT NULL,
-//     RAM VARCHAR(255) NOT NULL
-//   )
-// `, (err) => {
-//   if (err) {
-//     console.log(err)
-//     //throw err;
-//   }
-//   console.log('Table created!');
-// }
-// )
+db.query(`
+  CREATE TABLE IF NOT EXISTS Devices_System (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    Hostname VARCHAR(255) NOT NULL,
+    Time_Stamp VARCHAR(255) NOT NULL,
+    OS_Name VARCHAR(255) NOT NULL,
+    OS_Version VARCHAR(255) NOT NULL,
+    OS_Arch VARCHAR(255) NOT NULL,
+    CPU_Name VARCHAR(255) NOT NULL,
+    RAM VARCHAR(255) NOT NULL,
+    LEVEL VARCHAR(255) DEFAULT 5 NOT NULL
+  )
+`, (err) => {
+  if (err) {
+    console.log(err)
+    //throw err;
+  }
+  console.log('Table created!');
+}
+)
 
 // const query = `
 //     SELECT * FROM Devices t1
