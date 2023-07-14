@@ -124,10 +124,30 @@ db.connect((err) => {
 //   console.log('Query results:', data);
 // });
 
-db.query(`SELECT * FROM Users`, (err, results, fields) => {
+// db.query(`SELECT * FROM Users`, (err, results, fields) => {
+//   if (err) {
+//     console.log(err)
+//     //throw err;
+//   }
+//   console.log(results);
+// });
+
+db.query(`
+  CREATE TABLE IF NOT EXISTS Devices_System (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    Hostname VARCHAR(255) NOT NULL,
+    Time_Stamp VARCHAR(255) NOT NULL,
+    OS_Name VARCHAR(255) NOT NULL,
+    OS_Version VARCHAR(255) NOT NULL,
+    OS_Arch VARCHAR(255) NOT NULL,
+    CPU_Name VARCHAR(255) NOT NULL,
+    RAM VARCHAR(255) NOT NULL
+  )
+`, (err) => {
   if (err) {
     console.log(err)
     //throw err;
   }
-  console.log(results);
-});
+  console.log('Table created!');
+}
+)
