@@ -16,13 +16,20 @@ path = os.path.abspath(__file__)
 filePath = os.path.dirname(path)
 
 
-class ReportThread(QThread):
+class BackgroundWorker(QThread):
     def __init__(self, agent: Agent.CollectingAgent | None = ..., parent: QObject | None = ...) -> None:
         super().__init__()
         self.agent = agent
+        self.performance_timer = QTimer(self)
+        self.performance_timer.timeout.connect(self.agent.report_performance)
+        self.systeminfo_timer = QTimer(self)
+        self.systeminfo_timer.timeout.connect(self.agent.report_system_info)
 
     def run(self):
-        self.agent.report_system_status()
+        self.agent.report_system_info()
+        self.agent.report_performance()
+        self.performance_timer.start(10*1000)
+        self.systeminfo_timer.start(30*24*60*60*1000)
 
     def cancel(self):
         self.agent.cancelled = True
@@ -44,14 +51,11 @@ class MainWindow(Ui_Mainwindow, AcrylicWindow):
 
         # 创建Agent实例
         self.agent = Agent.CollectingAgent('http://127.0.0.1/report')
-        self.report_thread = ReportThread(agent=self.agent)
-        # 设置周期性时钟
-        self.report_timer = QTimer(self)
-        self.report_timer.timeout.connect(self.BackgroundWorker)
-        self.report_timer.start(10000)
+        self.worker = BackgroundWorker(agent=self.agent)
 
-    def BackgroundWorker(self):
-        self.report_thread.start()
+        # 启动BackgroundWorker
+        self.worker.start()
+
 
     def EditBtn_Clicked(self):
         self.Addr_TextEdit.setEnabled(True)

@@ -2,22 +2,33 @@ import json
 import os
 import platform
 import time
+import SystemInfo
 
 import psutil
 import requests
+
 
 class CollectingAgent():
     def __init__(self, master: str) -> None:
         self.MASTER = master
         self.cancelled = False
 
-    def get_system_info(self):
+    def report_system_info(self):
         system_info = {}
+        system_info['Time Stamp'] = time.time_ns()
         system_info['OS Name'] = platform.system()
-        system_info['OS version'] = platform.version()
+        system_info['OS Version'] = platform.version()
         system_info['OS Arch'] = platform.architecture()[0]
         system_info['Hostname'] = platform.node()
-        return system_info
+        system_info['CPU Name'] = SystemInfo.GetCpuConstants()["cpu_name"]
+        system_info['RAM'] = f"{round(psutil.virtual_memory().total/1024/1024,1)}GB"
+        try:
+            headers = {'Content-Type': 'application/json'}
+            requests.post(url=self.MASTER+'/report/systeminfo',headers=headers,data=json.dumps(system_info))
+            return True
+        except:
+            print("Network Error. Can't report system info!")
+            return False
 
     def data_dump(self, info: dict):
         if not os.path.exists('dump'):
@@ -36,7 +47,7 @@ class CollectingAgent():
         for file in files:
             fp = open(file, 'w', encoding='utf-8')
             try:
-                response = requests.post(url=self.MASTER,
+                response = requests.post(url=self.MASTER+'report/performance',
                                          headers=headers,
                                          data=json.load(fp))
                 if response.status_code == 200:
@@ -49,7 +60,7 @@ class CollectingAgent():
                 print('Failed to report dumped data.')
                 break
 
-    def report_system_status(self):
+    def report_performance(self):
         print('Collecting Infomation...')
         info = {}
         info['Time Stamp'] = time.time_ns()
@@ -87,14 +98,13 @@ class CollectingAgent():
             info['Package Loss Rate'] = f"{round((network_io_counters2.dropin - network_io_counters1.dropin +network_io_counters2.dropout - network_io_counters1.dropout + network_io_counters2.errout - network_io_counters1.errout)/(network_io_counters2.packets_sent-network_io_counters1.packets_sent), 2)}"
         else:
             info['Package Loss Rate'] = 0.00
-        info['System Info'] = self.get_system_info()
         print('Collected!')
         headers = {'Content-Type': 'application/json'}
         i = 0
         while i < 11:
             try:
                 response = requests.post(
-                    url=self.MASTER, headers=headers, data=json.dump(info))
+                    url=self.MASTER+'report/performance', headers=headers, data=json.dump(info))
                 if response.status_code == 200:
                     print('Successfully report system state to master node.')
                     return 0
