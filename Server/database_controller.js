@@ -163,41 +163,42 @@ db.connect((err) => {
 // }
 // )
 
-// const query = `
-//     SELECT t1.Hostname, t1.Time_Stamp FROM Devices t1
-//     INNER JOIN (
-//         SELECT Hostname, MAX(Time_Stamp) AS max_timestamp
-//         FROM Devices
-//         GROUP BY Hostname
-//     ) t2
-//     ON t1.Hostname = t2.Hostname AND t1.Time_Stamp = t2.max_timestamp;
-//   `;
-// db.query(query, (error, results, fields) => {
-//     if (error) {
-//         console.error('Error executing query: ' + error.stack);
-//     }
-//     else {
-//         const time_now = new Date()
-//         for (let i = 0; i < results.length; i++) {
-//             if ((time_now - parseInt(results[i]['Time_Stamp']) / 1000000) > 30 * 1000) {
-//                 //未存活，5min
-//                 results[i]['live'] = 0
-//             }
-//             else {
-//                 //存活
-//                 results[i]['live'] = 1
-//             }
-//         }
-//         console.log(results)
-//     }
-// });
-Hostname = "DESKTOP-I6JAGL6"
-const query = `SELECT * FROM Devices_System WHERE Hostname = ?`
-db.query(query, Hostname, (err, rows) => {
-    if (err) {
-        console.log(err)
+const query = `
+    SELECT * FROM Devices t1
+    INNER JOIN (
+        SELECT Hostname, MAX(Time_Stamp) AS max_timestamp
+        FROM Devices
+        GROUP BY Hostname
+    ) t2
+    ON t1.Hostname = t2.Hostname AND t1.Time_Stamp = t2.max_timestamp;
+  `;
+db.query(query, (error, results, fields) => {
+    if (error) {
+        console.error('Error executing query: ' + error.stack);
     }
     else {
-        console.log(rows)
+        const time_now = new Date()
+        for (let i = 0; i < results.length; i++) {
+            if ((time_now - parseInt(results[i]['Time_Stamp']) / 1000000) > 30 * 1000) {
+                //未存活，5min
+                results[i]['live'] = 0
+            }
+            else {
+                //存活
+                results[i]['live'] = 1
+            }
+        }
+        console.log(results)
     }
 });
+
+// Hostname = "DESKTOP-I6JAGL6"
+// const query = `SELECT * FROM Devices WHERE Hostname = ?`
+// db.query(query, Hostname, (err, rows) => {
+//     if (err) {
+//         console.log(err)
+//     }
+//     else {
+//         console.log(rows)
+//     }
+// });
