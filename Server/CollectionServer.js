@@ -152,44 +152,50 @@ agentRouter.post('/report/performance', (req, res) => {
 //提供给agent, 上传设备信息
 agentRouter.post('/admin/config', (req, res) => {
     const username = req.session.username;
-    const self_level = req.session.level
-    const type = req.type;
-    const level = req.level;
-    const target = req.target;
+    var self_level = req.session.level
+    const type = req.body.Type;
+    LogMsg(`type: ${type}`)
+    const level = req.body.level;
+    LogMsg(`level: ${level}`)
+    const target = req.body.Target;
+    LogMsg(`target: ${target}`)
 
-    LogMsg(`${username}修改权限请求: ${JSON.stringify(target)} level: ${level}`)
+    LogMsg(`${username} 修改权限请求: ${JSON.stringify(target)} level: ${level}`)
     //查询旧数据
 
     const promise = new Promise((resolve, reject) => {
-        if (type == "device") {
-            db.query("SELECT LEVEL FROM Devices_System WHERE Hostname = ?", [target], function (err, tar_level) {
+        if (type == "Device") {
+            db.query("SELECT * FROM Devices_System WHERE Hostname = ?", [target], function (err, tar_level) {
+                tar_level = tar_level[0]["LEVEL"]
+                LogMsg(`tar_level: ${parseInt(tar_level)}  self_level: ${parseInt(self_level)}`)
                 if (err) {
                     LogMsg(`查询权限失败: ${err}`)
                     reject("查询失败")
                 }
-                else if (parseInt(tar_level) > parseInt(self_level)) {
-                    LogMsg(`${username} 权限不足`)
-                    reject("权限不足")
-                }
-                else {
+                else if (parseInt(tar_level) <= parseInt(self_level)) {
                     LogMsg(`${username} 权限足够，准备修改`)
                     resolve()
+                }
+                else {
+                    LogMsg(`${username} 权限不足或错误-Device`)
+                    reject("权限不足或错误")
                 }
             })
         }
         else {
-            db.query("SELECT Permission FROM Users WHERE Username = ?", [target], function (err, tar_level) {
+            db.query("SELECT * FROM Users WHERE Username = ?", [target], function (err, tar_level) {
+                tar_level = tar_level[0]["Permission"]
                 if (err) {
                     LogMsg(`查询权限失败: ${err}`)
                     reject("查询失败")
                 }
-                else if (parseInt(tar_level) > parseInt(self_level)) {
-                    LogMsg(`${username} 权限不足`)
-                    reject("权限不足")
-                }
-                else {
+                else if (parseInt(tar_level) <= parseInt(self_level)) {
                     LogMsg(`${username} 权限足够，准备修改`)
                     resolve()
+                }
+                else {
+                    LogMsg(`${username} 权限不足或错误-Users`)
+                    reject("权限不足或错误")
                 }
             })
         }
@@ -309,7 +315,7 @@ adminRouter.post('/status_single', (req, res) => {
                 reject(err)
             }
             else {
-                LogMsg(`查询设备系统信息成功: ${rows}`);
+                LogMsg(`查询设备 ${Hostname} 系统信息成功`);
                 resolve(rows)
             }
         });

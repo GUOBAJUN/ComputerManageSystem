@@ -76,7 +76,7 @@ db.connect((err) => {
 
 // db.query(`
 //   INSERT INTO Users (id, Username, Password, Permission, Department, Father) VALUES (?, ?, ?, ?, ?, ?)
-// `, [0, "root", str, "root", "root", "NULL"], (err) => {
+// `, [0, "root", str, "5", "root", "NULL"], (err) => {
 //   if (err) {
 //     console.log(err)
 //     //throw err;
@@ -312,3 +312,18 @@ db.connect((err) => {
 //                     alive: ${num}`)
 //     }
 // })
+self_level = "5"
+target = "DESKTOP-I6JAGL6"
+db.query("SELECT * FROM Devices_System WHERE Hostname = ?", [target], function (err, tar_level) {
+    LogMsg(JSON.stringify(tar_level[0]["LEVEL"]))
+    // LogMsg(`tar_level: ${parseInt(tar_level)}  self_level: ${parseInt(self_level)}`)
+    // if (err) {
+    //     LogMsg(`查询权限失败: ${err}`)
+    // }
+    // else if (parseInt(tar_level) <= parseInt(self_level)) {
+    //     LogMsg(`权限足够，准备修改`)
+    // }
+    // else {
+    //     LogMsg(`权限不足或错误-Device`)
+    // }
+})
