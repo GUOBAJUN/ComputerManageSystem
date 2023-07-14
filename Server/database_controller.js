@@ -4,10 +4,10 @@ const config = require('./config')
 const db = mysql.createConnection(config.MySQLConnectionOption);
 
 db.connect((err) => {
-  if (err) {
-    console.log(err)
-  }
-  console.log('Connected to MySQL database!');
+    if (err) {
+        console.log(err)
+    }
+    console.log('Connected to MySQL database!');
 });
 
 // db.query(`
@@ -18,17 +18,28 @@ db.connect((err) => {
 //     CPU_Usage VARCHAR(255) NOT NULL,
 //     Memory_Usage VARCHAR(255) NOT NULL,
 //     Swap_Usage VARCHAR(255) NOT NULL,
-//     Disk_Usage VARCHAR(255) NOT NULL,
+//     Disk_Usage VARCHAR(5000) NOT NULL,
 //     Network_Usage VARCHAR(255) NOT NULL,
 //     Package_Loss_Rate VARCHAR(255) NOT NULL,
-//     System_Info VARCHAR(255) NOT NULL
+//     System_Info VARCHAR(5000)
 //   )
+// `, (err) => {
+//   if (err) {
+//     console.log(err)
+//     throw err;
+//   }
+//   console.log('Table created!');
+// })
+
+// db.query(`
+//   DROP TABLE Devices ;
 // `, (err) => {
 //   if (err) {
 //     console.log(err)
 //     //throw err;
 //   }
-//   console.log('Table created!');
+//   console.log('Table dropped!');
+// })
 
 // db.query(`
 //   CREATE TABLE IF NOT EXISTS Users (
@@ -132,22 +143,61 @@ db.connect((err) => {
 //   console.log(results);
 // });
 
-db.query(`
-  CREATE TABLE IF NOT EXISTS Devices_System (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    Hostname VARCHAR(255) NOT NULL,
-    Time_Stamp VARCHAR(255) NOT NULL,
-    OS_Name VARCHAR(255) NOT NULL,
-    OS_Version VARCHAR(255) NOT NULL,
-    OS_Arch VARCHAR(255) NOT NULL,
-    CPU_Name VARCHAR(255) NOT NULL,
-    RAM VARCHAR(255) NOT NULL
-  )
-`, (err) => {
-  if (err) {
-    console.log(err)
-    //throw err;
-  }
-  console.log('Table created!');
-}
-)
+// db.query(`
+//   CREATE TABLE IF NOT EXISTS Devices_System (
+//     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+//     Hostname VARCHAR(255) NOT NULL,
+//     Time_Stamp VARCHAR(255) NOT NULL,
+//     OS_Name VARCHAR(255) NOT NULL,
+//     OS_Version VARCHAR(255) NOT NULL,
+//     OS_Arch VARCHAR(255) NOT NULL,
+//     CPU_Name VARCHAR(255) NOT NULL,
+//     RAM VARCHAR(255) NOT NULL
+//   )
+// `, (err) => {
+//   if (err) {
+//     console.log(err)
+//     //throw err;
+//   }
+//   console.log('Table created!');
+// }
+// )
+
+// const query = `
+//     SELECT t1.Hostname, t1.Time_Stamp FROM Devices t1
+//     INNER JOIN (
+//         SELECT Hostname, MAX(Time_Stamp) AS max_timestamp
+//         FROM Devices
+//         GROUP BY Hostname
+//     ) t2
+//     ON t1.Hostname = t2.Hostname AND t1.Time_Stamp = t2.max_timestamp;
+//   `;
+// db.query(query, (error, results, fields) => {
+//     if (error) {
+//         console.error('Error executing query: ' + error.stack);
+//     }
+//     else {
+//         const time_now = new Date()
+//         for (let i = 0; i < results.length; i++) {
+//             if ((time_now - parseInt(results[i]['Time_Stamp']) / 1000000) > 30 * 1000) {
+//                 //未存活，5min
+//                 results[i]['live'] = 0
+//             }
+//             else {
+//                 //存活
+//                 results[i]['live'] = 1
+//             }
+//         }
+//         console.log(results)
+//     }
+// });
+Hostname = "DESKTOP-I6JAGL6"
+const query = `SELECT * FROM Devices_System WHERE Hostname = ?`
+db.query(query, Hostname, (err, rows) => {
+    if (err) {
+        console.log(err)
+    }
+    else {
+        console.log(rows)
+    }
+});

@@ -84,16 +84,18 @@ agentRouter.post('/report/performance', (req, res) => {
 
     //存入数据库
     db.query(`INSERT INTO Devices (Hostname, Time_Stamp, CPU_Usage, Memory_Usage, Swap_Usage, Disk_Usage, Network_Usage, Package_Loss_Rate) VALUES(?,?,?,?,?,?,?,?)`,
-        body["Hostname"], body["Time Stamp"], body["CPU Usage"], body["Memory Usage"], body["Swap Usage"],
-        body["Disk Usage"], body["Network Usage"], body["Package Loss Rate"], (err, result) => {
+        [body["Hostname"], body["Time Stamp"], body["CPU Usage"], body["Memory Usage"], body["Swap Usage"],
+        JSON.stringify(body["Disk Usage"]), body["Network Usage"], body["Package Loss Rate"]], (err, result) => {
             if (err) {
                 LogMsg(err)
                 return res.status(403).send('{seccess: false}');
             }
-            LogMsg(result);
+            else {
+                LogMsg(result);
+                LogMsg("设备信息存储成功")
+                return res.status(200).send('{success: true}');
+            }
         });
-    LogMsg("设备信息存储成功")
-    return res.status(200).send('{success: true}');
 })
 
 
@@ -141,8 +143,8 @@ agentRouter.post('/report/systeminfo', (req, res) => {
         else if (result == 2) {
             db.query(`UPDATE Devices_System SET Time_Stamp = ?, OS_Name = ?, OS_Version = ?, 
             OS_Arch = ?, CPU_Name = ?, RAM = ? WHERE Hostname = ? `,
-            [body["Time Stamp"], body["OS Name"], body["OS Version"], body["OS Arch"],
-            body["CPU Name"], body["RAM"], body["Hostname"]],
+                [body["Time Stamp"], body["OS Name"], body["OS Version"], body["OS Arch"],
+                body["CPU Name"], body["RAM"], body["Hostname"]],
                 (err, result) => {
                     if (err) throw err;
                     LogMsg(JSON.stringify(result));
@@ -169,28 +171,50 @@ adminRouter.post('/status_single', (req, res) => {
     }
     const Hostname = req.body.Hostname
     LogMsg(JSON.stringify(req.body))
-    LogMsg(`查询:${Hostname}`)
+    LogMsg(`查询具体信息: ${Hostname}`)
     //查询单个设备最新数据
-    const query = `
-    SELECT * FROM Devices
-    WHERE Hostname = '${Hostname}'
-    ORDER BY Time_Stamp DESC
-    LIMIT 10;
-    `;
-    db.query(query, (error, results, fields) => {
-        if (error) {
-            // console.error('Error executing query: ' + error.stack);
-            LogMsg('Error executing query: ' + error.stack)
-            return res.status(403).send({ success: false, msg: '查询失败' });;
-        }
-        if (results == undefined || results == "") {
-            LogMsg(`查询失败，设备： ${Hostname}不存在`)
-            return res.status(403).send({ success: false, msg: '设备不存在' });
-        }
-        LogMsg(`成功查询设备：${Hostname} 信息：${JSON.stringify(results)}`)
-        return res.status(200).send({ success: true, msg: '查询成功', results });
+
+    const promise = new Promise((resolve, reject) => {
+        // 异步操作
+        const query = `SELECT * FROM Devices_System WHERE Hostname = ?`
+        db.query(query, Hostname, (err, rows) => {
+            if (err) {
+                reject(err)
+            }
+            else {
+                LogMsg(`查询设备系统信息成功: ${rows}`);
+                resolve(rows)
+            }
+        });
+    })
+    promise.then(result => {
+        const query = `
+            SELECT * FROM Devices
+            WHERE Hostname = '${Hostname}'
+            ORDER BY Time_Stamp DESC
+            LIMIT 10;
+        `;
+        db.query(query, (error, rows, fields) => {
+            if (error) {
+                // console.error('Error executing query: ' + error.stack);
+                LogMsg(`${Hostname} perform数据查询失败，: ' + ${error.stack}`)
+                return res.status(403).send({ success: false, msg: "查询失败" });
+            }
+            else if (rows == undefined || rows ==   "") {
+                LogMsg(`${Hostname} perform数据查询失败: 不存在`)
+                return res.status(403).send({ success: false, msg: "查询失败" });
+            }
+            else {
+                LogMsg(`设备：${Hostname} performance信息查询成功：${JSON.stringify(rows)}`)
+                return res.status(200).send({ success: true, msg: "查询成功", systeminfo: result[0],  results: rows });
+            }
+        });
+    }).catch(error => {
+        LogMsg(error)
+        return res.status(403).send({ success: false, msg: "查询失败" });
     });
-})
+
+});
 
 //查询所有设备的信息
 adminRouter.get('/status_all', (req, res) => {
@@ -199,7 +223,7 @@ adminRouter.get('/status_all', (req, res) => {
         return res.status(403).send({ success: false, msg: '未登录' });
     }
     const query = `
-    SELECT t1.System_Info, t1.Time_Stamp FROM Devices t1
+    SELECT t1.Hostname, t1.Time_Stamp FROM Devices t1
     INNER JOIN (
         SELECT Hostname, MAX(Time_Stamp) AS max_timestamp
         FROM Devices
@@ -213,20 +237,23 @@ adminRouter.get('/status_all', (req, res) => {
             LogMsg('Error executing query: ' + error.stack)
             return res.status(403).send({ success: false, msg: '查询失败' });;
         }
-        const time_now = new Date()
-        for (let i = 0; i < results.length; i++) {
-            if ((time_now - parseInt(results[i]['Time_Stamp']) / 1000000) > 30 * 1000) {
-                //未存活，5min
-                results[i]['live'] = 0
+        else {
+            const time_now = new Date()
+            for (let i = 0; i < results.length; i++) {
+                if ((time_now - parseInt(results[i]['Time_Stamp']) / 1000000) > 30 * 1000) {
+                    //未存活，5min
+                    results[i]['live'] = 0
+                }
+                else {
+                    //存活
+                    results[i]['live'] = 1
+                }
             }
-            else {
-                //存活
-                results[i]['live'] = 1
-            }
+            LogMsg("成功查询所有设备概略信息")
+            LogMsg(JSON.stringify(results))
+            return res.status(200).send({ success: true, msg: '查询成功', results: results });
         }
-        LogMsg("成功查询所有设备概略信息")
-        LogMsg(JSON.stringify(results))
-        return res.status(200).send({ success: true, msg: '查询成功', results });
+
     });
 })
 
