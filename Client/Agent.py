@@ -63,6 +63,7 @@ class CollectingAgent():
     def report_performance(self):
         print('Collecting Infomation...')
         info = {}
+        info['Hostname'] = platform.node()
         info['Time Stamp'] = time.time_ns()
         info['CPU Usage'] = psutil.cpu_percent(interval=2)
         info['Memory Usage'] = f"{psutil.virtual_memory().percent}"
@@ -105,7 +106,7 @@ class CollectingAgent():
             try:
                 print(self.MASTER+'report/performance')
                 response = requests.post(
-                    url=self.MASTER+'report/performance', headers=headers, data=json.dump(info))
+                    url=self.MASTER+'report/performance', headers=headers, data=json.dumps(info))
                 if response.status_code == 200:
                     print('Successfully report system state to master node.')
                     return 0
