@@ -21,7 +21,7 @@ class CollectingAgent():
         system_info['OS Arch'] = platform.architecture()[0]
         system_info['Hostname'] = platform.node()
         system_info['CPU Name'] = SystemInfo.GetCpuConstants()["cpu_name"]
-        system_info['RAM'] = f"{round(psutil.virtual_memory().total/1024/1024,1)}GB"
+        system_info['RAM'] = f"{round(psutil.virtual_memory().total/1024/1024/1024,1)}GB"
         try:
             headers = {'Content-Type': 'application/json'}
             requests.post(url=self.MASTER+'report/systeminfo',headers=headers,data=json.dumps(system_info))
