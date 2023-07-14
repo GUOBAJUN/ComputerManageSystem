@@ -45,6 +45,7 @@ function LogMsg(msg) {
 }
 
 function Trap(session_list, SendBuff){
+    var udp_client = dgram.createSocket('udp4'); 
     //通过session获取ip池, 然后发送
     ip_list = []
     var SendLen = SendBuff.length;
@@ -384,25 +385,25 @@ server = app.listen(port, () => {
 
 //////////////////////------发送预警------///////////////////////////
 
-var udp_client = dgram.createSocket('udp4');
+// var udp_client = dgram.createSocket('udp4');
 
-udp_client.on('close', function () {
-    console.log('udp client closed.')
-})
+// udp_client.on('close', function () {
+//     console.log('udp client closed.')
+// })
 
-//错误处理
-udp_client.on('error', function () {
-    console.log('some error on udp client.')
-})
+// //错误处理
+// udp_client.on('error', function () {
+//     console.log('some error on udp client.')
+// })
 
-// 接收消息
-udp_client.on('message', function (msg, rinfo) {
-    console.log(`receive message from ${rinfo.address}:${rinfo.port}：${msg}`);
-})
+// // 接收消息
+// udp_client.on('message', function (msg, rinfo) {
+//     console.log(`receive message from ${rinfo.address}:${rinfo.port}：${msg}`);
+// })
 
-//定时向服务器发送消息
-setInterval(function () {
-    var SendBuff = 'hello 123.';
-    var SendLen = SendBuff.length;
-    udp_client.send(SendBuff, 0, SendLen, 5678, '172.30.20.10');
-}, 3000);
+// //定时向服务器发送消息
+// setInterval(function () {
+//     var SendBuff = 'hello 123.';
+//     var SendLen = SendBuff.length;
+//     udp_client.send(SendBuff, 0, SendLen, 5678, '172.30.20.10');
+// }, 3000);
