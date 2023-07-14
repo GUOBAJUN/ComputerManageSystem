@@ -109,6 +109,7 @@ class CollectingAgent():
                     url=self.MASTER+'report/performance', headers=headers, data=json.dumps(info))
                 if response.status_code == 200:
                     print('Successfully report system state to master node.')
+                    self.dump_report()
                     return 0
                 else:
                     print('An error occurred when sending system state.')
