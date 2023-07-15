@@ -45,7 +45,7 @@ class CollectingAgent():
         print('Attempting to report dumped data.')
         headers = {'Content-Type': 'application/json'}
         for file in files:
-            fp = open(file, 'w', encoding='utf-8')
+            fp = open(file, 'r', encoding='utf-8')
             try:
                 response = requests.post(url=self.MASTER+'report/performance',
                                          headers=headers,
@@ -56,7 +56,8 @@ class CollectingAgent():
                 else:
                     print('Failed to report dumped data.')
                     break
-            except:
+            except Exception as e:
+                print(e)
                 print('Failed to report dumped data.')
                 break
 
@@ -138,3 +139,7 @@ class CollectingAgent():
                 print('Data will be dumped to dump folder.')
                 self.data_dump(info)
                 return -1
+
+if __name__ == '__main__':
+    agent = CollectingAgent('http://desktop-i6jagl6.local:10086/')
+    agent.report_performance()
