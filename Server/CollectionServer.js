@@ -170,7 +170,7 @@ agentRouter.post('/report/performance', (req, res) => {
         JSON.stringify(body["Disk Usage"]), body["Network Usage"], body["Package Loss Rate"]], (err, result) => {
             if (err) {
                 LogMsg(err)
-                return res.status(403).send('{success: false}');
+                return res.status(503).send('{success: false}');
             }
             else {
                 LogMsg("设备信息存储成功")
@@ -426,7 +426,7 @@ adminRouter.get('/dashboard', (req, res) => {
         return res.status(403).send({ success: false, msg: '未登录' });
     }
     const query = `
-    SELECT * FROM Devices t1
+    SELECT t1.* FROM Devices t1
     INNER JOIN (
         SELECT Hostname, MAX(Time_Stamp) AS max_timestamp
         FROM Devices
@@ -488,8 +488,10 @@ adminRouter.get('/dashboard', (req, res) => {
                     Disk_total += Number.parseFloat(xx[key]["Total"].replace("GB", ""))
                 }
             }
-            CPU_avg = CPU_avg / num
+            if (num != 0){
+                CPU_avg = CPU_avg / num
             Memory_avg = Memory_avg / num
+            }
             Used_Rate = Disk_Used / Disk_total;
             Used_Rate = Math.round(parseInt(Used_Rate * 1000)) / 10
 
@@ -506,8 +508,8 @@ adminRouter.get('/dashboard', (req, res) => {
                 Total: results.length
             }
             for (let key in msg) {
-                if (msg[key] == null) {
-                    msg[k] = 0
+                if (msg[key].type ) {
+                    msg[key] = 0
                 }
             }
 

@@ -348,7 +348,7 @@ const query = `
         GROUP BY Hostname
     ) t2
     ON t1.Hostname = t2.Hostname AND t1.Time_Stamp = t2.max_timestamp GROUP BY t1.Hostname;
-  `;    
+  `;
     db.query(query, (error, results, fields) => {
         if (error) {
             // console.error('Error executing query: ' + error.stack);
