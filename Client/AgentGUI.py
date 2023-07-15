@@ -51,7 +51,7 @@ class MainWindow(Ui_Mainwindow, AcrylicWindow):
         self.setWindowTitle('System Status Collecting Agent')
 
         # 创建Agent实例
-        self.agent = Agent.CollectingAgent('http://192.168.43.82:10086/')
+        self.agent = Agent.CollectingAgent('http://desktop-i6jagl6.local:10086/')
         self.siWorker = SysteminfoWorker(self, self.agent)
         self.pfWorker = PerformanceWorker(self, self.agent)
 

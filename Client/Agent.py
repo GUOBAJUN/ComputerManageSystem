@@ -24,7 +24,8 @@ class CollectingAgent():
         system_info['RAM'] = f"{round(psutil.virtual_memory().total/1024/1024/1024,1)}GB"
         try:
             headers = {'Content-Type': 'application/json'}
-            requests.post(url=self.MASTER+'report/systeminfo',headers=headers,data=json.dumps(system_info))
+            requests.post(url=self.MASTER+'report/systeminfo',
+                          headers=headers, data=json.dumps(system_info))
             return True
         except:
             print("Network Error. Can't report system info!")
@@ -45,7 +46,7 @@ class CollectingAgent():
         print('Attempting to report dumped data.')
         headers = {'Content-Type': 'application/json'}
         for file in files:
-            fp = open(file, 'r', encoding='utf-8')
+            fp = open(os.path.join('dump', file), 'r', encoding='utf-8')
             try:
                 response = requests.post(url=self.MASTER+'report/performance',
                                          headers=headers,
@@ -139,6 +140,7 @@ class CollectingAgent():
                 print('Data will be dumped to dump folder.')
                 self.data_dump(info)
                 return -1
+
 
 if __name__ == '__main__':
     agent = CollectingAgent('http://desktop-i6jagl6.local:10086/')
