@@ -109,15 +109,45 @@ adminRouter.post('/login', (req, res) => {
     })
 })
 
+adminRouter.post('/register', (req, res) => {
+    const username = req.body.Account
+    var password = req.body.Password
+    var level = req.body.level
+    const Department = req.body.Department
+
+    // 签名对象
+    let obj = crypto.createHash('md5');
+    // 加密数据
+    var en_password = obj.update(password).digest('hex');
+    // 以十六进制返回结果
+
+    LogMsg(`处理注册请求：账号：${username} 密码：${en_password}`,)
+
+    // 处理请求数据并返回响应结果
+    db.query(`
+              INSERT INTO Users (Username, Password, Permission, Department, Father) VALUES (?, ?, ?, ?, ?)
+            `, [username, en_password, level, Department, "NULL"], (err) => {
+        if (err) {
+            LogMsg(`注册用户 ${username} 失败`)
+            LogMsg(err)
+            return res.status(503).send({ success: false })
+            //throw err;
+        }
+        LogMsg(`注册用户 ${username} 成功`)
+        return res.status(200).send({ success: true })
+    });
+
+})
+
 adminRouter.post('/logout', (req, res) => {
     req.session.username = null;
 })
 
 //提供给agent, 上传设备信息
 agentRouter.post('/report/performance', (req, res) => {
-    LogMsg("接收设备信息:performance")
-    const body = req.body;
 
+    const body = req.body;
+    LogMsg(`接收设备信息(performance): ${body["Hostname"]}`)
     //发出CPU警告
     if (parseFloat(body['CPU Usage']) > 80) {
         var SendBuff = JSON.stringify({ type: "CPU_high", Hostname: body["Hostname"], data: body['CPU Usage'] })
@@ -201,7 +231,7 @@ agentRouter.post('/admin/config', (req, res) => {
         }
     })
     promise.then(result => {
-        if (type == "device") {
+        if (type == "Device") {
             db.query(`UPDATE Devices_System SET LEVEL = ? WHERE Hostname = ? `,
                 [level, target],
                 (err, result) => {
@@ -230,7 +260,7 @@ agentRouter.post('/admin/config', (req, res) => {
                 });
         }
     }).catch(error => {
-        return res.status(403).send({ success: false, msg: error});
+        return res.status(403).send({ success: false, msg: error });
     });
 })
 
@@ -362,7 +392,7 @@ adminRouter.get('/status_all', (req, res) => {
         FROM Devices
         GROUP BY Hostname
     ) t2
-    ON t1.Hostname = t2.Hostname AND t1.Time_Stamp = t2.max_timestamp;
+    ON t1.Hostname = t2.Hostname AND t1.Time_Stamp = t2.max_timestamp GROUP BY t1.Hostname;
   `;
     db.query(query, (error, results, fields) => {
         if (error) {
@@ -402,7 +432,7 @@ adminRouter.get('/dashboard', (req, res) => {
         FROM Devices
         GROUP BY Hostname
     ) t2
-    ON t1.Hostname = t2.Hostname AND t1.Time_Stamp = t2.max_timestamp;
+    ON t1.Hostname = t2.Hostname AND t1.Time_Stamp = t2.max_timestamp GROUP BY t1.Hostname;
   `;
     db.query(query, (error, results, fields) => {
         if (error) {
@@ -453,7 +483,7 @@ adminRouter.get('/dashboard', (req, res) => {
                 //总磁盘占用率
                 xx = JSON.parse(results[i]["Disk_Usage"])
                 for (const [key, value] of Object.entries(xx)) {
-                    LogMsg(`Key: ${key}, Value: ${value}`)
+                    // LogMsg(`Key: ${key}, Value: ${value}`)
                     Disk_Used += Number.parseFloat(xx[key]["Used"].replace("GB", ""))
                     Disk_total += Number.parseFloat(xx[key]["Total"].replace("GB", ""))
                 }
@@ -463,16 +493,7 @@ adminRouter.get('/dashboard', (req, res) => {
             Used_Rate = Disk_Used / Disk_total;
             Used_Rate = Math.round(parseInt(Used_Rate * 1000)) / 10
 
-            LogMsg(`成功查询仪表盘信息: 
-                    Network_Usage: ${net_max}, 
-                    net_more_80: ${net_more_80}, 
-                    net_less_30: ${net_less_30}                    
-                    CPU_Usage: ${CPU_avg}, 
-                    Memory_Usage: ${Memory_avg}, 
-                    Disk_Usage: ${Used_Rate}, 
-                    alive: ${num},
-                    Total: ${results.length}`)
-            return res.status(200).send({
+            msg = {
                 success: true,
                 msg: '查询成功',
                 Network_Usage: net_max,
@@ -483,10 +504,46 @@ adminRouter.get('/dashboard', (req, res) => {
                 net_more_80: net_more_80,
                 net_less_30: net_less_30,
                 Total: results.length
-            });
+            }
+            for (let key in msg) {
+                if (msg[key] == null) {
+                    msg[k] = 0
+                }
+            }
+
+            LogMsg(`成功查询仪表盘信息: 
+                    Network_Usage: ${net_max}, 
+                    net_more_80: ${net_more_80}, 
+                    net_less_30: ${net_less_30}                    
+                    CPU_Usage: ${CPU_avg}, 
+                    Memory_Usage: ${Memory_avg}, 
+                    Disk_Usage: ${Used_Rate}, 
+                    alive: ${num},
+                    Total: ${results.length}`)
+            return res.status(200).send(msg);
         }
     });
 })
+
+adminRouter.get('/user_all', (req, res) => {
+    if (!req.session.username) {
+        return res.status(403).send({ success: false, msg: '未登录' });
+    }
+    LogMsg(`查询用户信息`)
+    //查询单个设备最新数据
+    // 异步操作
+    const query = `SELECT Username, Permission, Department FROM Users`
+    db.query(query, (err, rows) => {
+        if (err) {
+            reject(err)
+        }
+        else {
+            LogMsg(`查询用户信息成功`);
+            return res.status(200).send({ success: true, msg: rows })
+        }
+    });
+
+});
 
 app.use('/', agentRouter);
 app.use('/admin', adminRouter);

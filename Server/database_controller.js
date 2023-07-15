@@ -312,18 +312,63 @@ db.connect((err) => {
 //                     alive: ${num}`)
 //     }
 // })
-self_level = "5"
-target = "DESKTOP-I6JAGL6"
-db.query("SELECT * FROM Devices_System WHERE Hostname = ?", [target], function (err, tar_level) {
-    LogMsg(JSON.stringify(tar_level[0]["LEVEL"]))
-    // LogMsg(`tar_level: ${parseInt(tar_level)}  self_level: ${parseInt(self_level)}`)
-    // if (err) {
-    //     LogMsg(`查询权限失败: ${err}`)
-    // }
-    // else if (parseInt(tar_level) <= parseInt(self_level)) {
-    //     LogMsg(`权限足够，准备修改`)
-    // }
-    // else {
-    //     LogMsg(`权限不足或错误-Device`)
-    // }
-})
+// self_level = "5"
+// target = "DESKTOP-I6JAGL6"
+// db.query("SELECT * FROM Devices_System WHERE Hostname = ?", [target], function (err, tar_level) {
+//     LogMsg(JSON.stringify(tar_level[0]["LEVEL"]))
+// LogMsg(`tar_level: ${parseInt(tar_level)}  self_level: ${parseInt(self_level)}`)
+// if (err) {
+//     LogMsg(`查询权限失败: ${err}`)
+// }
+// else if (parseInt(tar_level) <= parseInt(self_level)) {
+//     LogMsg(`权限足够，准备修改`)
+// }
+// else {
+//     LogMsg(`权限不足或错误-Device`)
+// }
+// })
+
+// db.query(`UPDATE Users SET Permission = ? WHERE Username = ? `,
+//     ["5", "hui"],
+//     (err, result) => {
+//         if (err) {
+//             LogMsg(`修改权限错误: ${err}`);
+//         }
+//         else {
+//             LogMsg(`修改权限成功`);
+//         }
+//     });
+
+
+const query = `
+    SELECT t1.* FROM Devices t1
+    INNER JOIN (
+        SELECT Hostname, MAX(Time_Stamp) AS max_timestamp
+        FROM Devices
+        GROUP BY Hostname
+    ) t2
+    ON t1.Hostname = t2.Hostname AND t1.Time_Stamp = t2.max_timestamp GROUP BY t1.Hostname;
+  `;    
+    db.query(query, (error, results, fields) => {
+        if (error) {
+            // console.error('Error executing query: ' + error.stack);
+            LogMsg('Error executing query: ' + error.stack)
+            // return res.status(403).send({ success: false, msg: '查询失败' });;
+        }
+        else {
+            const time_now = new Date()
+            for (let i = 0; i < results.length; i++) {
+                if ((time_now - parseInt(results[i]['Time_Stamp']) / 1000000) > 30 * 1000) {
+                    //未存活，5min
+                    results[i]['live'] = 0
+                }
+                else {
+                    //存活
+                    results[i]['live'] = 1
+                }
+            }
+            LogMsg("成功查询所有设备概略信息")
+            LogMsg(JSON.stringify(results))
+            // return res.status(200).send({ success: true, msg: '查询成功', results: results });
+        }
+    });
