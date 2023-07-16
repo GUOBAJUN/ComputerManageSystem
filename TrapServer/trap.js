@@ -1,8 +1,6 @@
 const mysql = require('mysql')
-var dgram = require('dgram');
-const bodyParser = require('body-parser');
+const dgram = require('dgram');
 const config = require('./config');
-const session = require('express-session');
 
 const db = mysql.createConnection(config.MySQLConnectionOption);
 
