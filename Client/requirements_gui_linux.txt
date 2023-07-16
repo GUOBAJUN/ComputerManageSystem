@@ -1,0 +1,7 @@
+cachelib==0.10.2
+psutil==5.9.5
+PyQt5==5.15.9
+PyQt5_Frameless_Window==0.2.7
+PyQt5_sip==12.12.1
+PyQt_Fluent_Widgets==0.9.3
+Requests==2.31.0

@@ -1,0 +1,14 @@
+FROM python:3.10
+
+RUN mkdir /Client
+WORKDIR /Client
+
+RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple pip -U
+
+ADD requirements_gui_linux.txt /Client/
+
+RUN pip install -r requirements_gui_linux.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+ADD . /Client/
+
+CMD [ "python3","AgentGUI.py" ]
