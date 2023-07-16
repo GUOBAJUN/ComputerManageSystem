@@ -38,6 +38,22 @@ db.connect((err) => {
 // })
 
 // db.query(`
+//   CREATE TABLE IF NOT EXISTS Devices_trap (
+//     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+//     Hostname VARCHAR(255) NOT NULL,
+//     CPU INT DEFAULT 90 NOT NULL,
+//     Memory INT DEFAULT 90 NOT NULL,
+//     Net INT DEFAULT 90 NOT NULL
+//   )
+// `, (err) => {
+//   if (err) {
+//     console.log(err)
+//     throw err;
+//   }
+//   console.log('Table created!');
+// })
+
+// db.query(`
 //   CREATE TABLE IF NOT EXISTS Trap (
 //     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
 //     CPU INT NOT NULL,
@@ -99,13 +115,6 @@ db.connect((err) => {
 //   console.log('Table created!');
 // });
 
-// db.query(`SELECT * FROM Devices`, (err, results, fields) => {
-//   if (err) {
-//     console.log(err)
-//     //throw err;
-//   }
-//   console.log(results);
-// });
 
 // db.query(`SELECT * FROM Devices`, (err, results, fields) => {
 //   if (err) {
@@ -166,13 +175,13 @@ db.connect((err) => {
 // });
 
 
-db.query(`SELECT * FROM Users`, (err, results, fields) => {
-    if (err) {
-        console.log(err)
-        //throw err;
-    }
-    console.log(results);
-});
+// db.query(`SELECT * FROM Users`, (err, results, fields) => {
+//     if (err) {
+//         console.log(err)
+//         //throw err;
+//     }
+//     console.log(results);
+// });
 
 // db.query(`DELETE FROM Users WHERE Username = ?`, "WH",(err, results, fields) => {
 //     if (err) {

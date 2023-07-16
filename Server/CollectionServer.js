@@ -8,6 +8,26 @@ const session = require('express-session');
 var dgram = require('dgram');
 const crypto = require('crypto');
 const { resolve } = require('path');
+const MySQLStore = require('express-mysql-session')(session)
+
+const sessionStore = new MySQLStore({
+    host: '47.98.106.205',
+    port: 3306,
+    user: 'root',
+    password: 'Bajun20020603',
+    database: 'status',
+    createDatabaseTable: true,
+    schema: {
+        tableName: 'session',
+        columnNames: {
+            session_id: 'session_id',
+            expires: 'session_expires',
+            data: 'session_data'
+        }
+    },
+    clearExpired: true,
+    autoReconect: true
+})
 
 const db = mysql.createConnection(config.MySQLConnectionOption);
 
@@ -24,7 +44,7 @@ var FileStore = require('session-file-store')(session);
 
 var sessionMiddleware = session({
     secret: '123456',
-    store: new FileStore(),
+    store: sessionStore,
     cookie: {
         path: '/',
         httpOnly: true,
@@ -37,7 +57,7 @@ var sessionMiddleware = session({
 })
 app.use(sessionMiddleware);
 
-session_list = []
+// session_list = []
 
 const agentRouter = new express.Router()
 const adminRouter = new express.Router()
@@ -47,31 +67,9 @@ function LogMsg(msg) {
     console.log(`[${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}]${msg}`);
 }
 
-function Trap(session_list, SendBuff) {
-    var udp_client = dgram.createSocket('udp4');
-    //通过session获取ip池, 然后发送
-    ip_list = []
-    var SendLen = SendBuff.length;
-    for (let i = session_list.length - 1; i >= 0; i--) {
-        // if (!session_list[i].cookie.expires || req.session.cookie.expires < new Date()){
-        //删除过期session
-        if (!session_list[i].cookie.expires || !session_list[i].username) {
-            session_list = session_list.filter(function (item) {
-                return item !== session_list[i]
-            });
-        }
-        else {
-            ip_list.push(session_list[i].ip)
-        }
-    }
-    for (let i = 0; i < ip_list.length; i++) {
-        LogMsg(`发送trap报文: ${SendBuff}, ip: ${ip_list[i]}`)
-        udp_client.send(SendBuff, 0, SendLen, 10087, ip_list[i]);
-    }
-}
-
 //提供给manager, 登录
-adminRouter.post('/login', async (req, res) => {
+
+adminRouter.post('/login', (req, res) => {
     const username = req.body.Account
     var password = req.body.Password
 
@@ -96,19 +94,19 @@ adminRouter.post('/login', async (req, res) => {
         }
         for (let i = 0; i < rows.length; i++) {
             if (rows[i].Password == en_password) {
-                LogMsg(`登录成功，账号：${username} 密码：${en_password} ip: ${req.ip.substring(7, req.ip.length)}`)
+                LogMsg(`登录成功，账号：${username} 密码：${en_password} ip: ${req.ip}`)
                 req.session.username = username;
                 req.session.level = rows[i]["Permission"];
-                req.session.ip = req.ip.substring(7, req.ip.length)
+                // req.session.ip = req.ip.substring(7, req.ip.length)
+                req.session.ip = req.ip
                 //当前的用户session
-                session_list.push(req.session)
+                // session_list.push(req.session)
                 return res.status(200).send({ success: true, msg: '登录成功', permission: rows[i]["Permission"] });
             }
         }
         LogMsg("登录失败，密码错误")
         return res.status(403).send({ success: false, msg: '用户或密码错误' });
     })
-
 })
 
 adminRouter.post('/register', (req, res) => {
@@ -147,25 +145,9 @@ adminRouter.post('/logout', (req, res) => {
 
 //提供给agent, 上传设备信息
 agentRouter.post('/report/performance', (req, res) => {
-
     const body = req.body;
     LogMsg(`接收设备信息(performance): ${body["Hostname"]}`)
     //发出CPU警告
-    if (parseFloat(body['CPU Usage']) > 80) {
-        var SendBuff = JSON.stringify({ type: "CPU_high", Hostname: body["Hostname"], data: body['CPU Usage'] })
-        Trap(session_list, SendBuff)
-    }
-    //发出Memory警告
-    if (parseFloat(body["Memory Usage"]) > 80) {
-        var SendBuff = JSON.stringify({ type: "Memory_high", Hostname: body["Hostname"], data: body['Memory Usage'] })
-        Trap(session_list, SendBuff)
-    }
-    //发出Network警告
-    if (parseFloat(body["Network Usage"]) > 80) {
-        var SendBuff = JSON.stringify({ type: "Network_high", Hostname: body["Hostname"], data: parseFloat(body['Network Usage']) })
-        Trap(session_list, SendBuff)
-    }
-
     //存入数据库
     db.query(`INSERT INTO Devices (Hostname, Time_Stamp, CPU_Usage, Memory_Usage, Swap_Usage, Disk_Usage, Network_Usage, Package_Loss_Rate) VALUES(?,?,?,?,?,?,?,?)`,
         [body["Hostname"], body["Time Stamp"], body["CPU Usage"], body["Memory Usage"], body["Swap Usage"],
@@ -186,11 +168,9 @@ agentRouter.post('/admin/config', (req, res) => {
     const username = req.session.username;
     var self_level = req.session.level
     const type = req.body.Type;
-    LogMsg(`type: ${type}`)
     const level = req.body.level;
-    LogMsg(`level: ${level}`)
     const target = req.body.Target;
-    LogMsg(`target: ${target}`)
+    // LogMsg(`type: ${type} level: ${level} target: ${target}`)
 
     LogMsg(`${username} 修改权限请求: ${JSON.stringify(target)} level: ${level}`)
     //查询旧数据
@@ -301,7 +281,14 @@ agentRouter.post('/report/systeminfo', (req, res) => {
                 [body["Hostname"], body["Time Stamp"], body["OS Name"], body["OS Version"], body["OS Arch"],
                 body["CPU Name"], body["RAM"]], (err, result) => {
                     if (err) throw err;
-                    LogMsg(result);
+                    LogMsg(`系统信息录入失败: ${result}`);
+                    return res.status(500).send({ success: false });
+                });
+            db.query(`INSERT INTO Devices_trap Hostname = ?`,
+                [body["Hostname"]], (err, result) => {
+                    if (err) throw err;
+                    LogMsg(`系统信息录入失败: ${result}`);
+                    return res.status(500).send({ success: false });
                 });
             LogMsg(`设备:${body["Hostname"]}信息录入成功`)
             return res.status(200).send({ success: true });
@@ -533,16 +520,16 @@ adminRouter.get('/user_all', (req, res) => {
     if (!req.session.username) {
         return res.status(403).send({ success: false, msg: '未登录' });
     }
-    LogMsg(`查询用户信息`)
+    LogMsg(`查询所有用户信息`)
     //查询单个设备最新数据
     // 异步操作
     const query = `SELECT Username, Permission, Department FROM Users`
     db.query(query, (err, rows) => {
         if (err) {
-            reject(err)
+            LogMsg(`查询用户信息失败: ${err}`)
         }
         else {
-            LogMsg(`查询用户信息成功`);
+            LogMsg(`查询所有用户信息成功`);
             return res.status(200).send({ success: true, msg: rows })
         }
     });
@@ -572,7 +559,7 @@ adminRouter.post('/update', (req, res) => {
             else {
                 for (let i = 0; i < rows.length; i++) {
                     if (rows[i].Password == en_password) {
-                        LogMsg(`修改者认证成功，账号：${username} 密码：${en_password} ip: ${req.ip.substring(7, req.ip.length)}`)
+                        LogMsg(`修改者认证成功，账号：${req.session.username} 密码：${en_password} ip: ${req.ip.substring(7, req.ip.length)}`)
                         resolve()
                     }
                 }
@@ -596,8 +583,10 @@ adminRouter.post('/update', (req, res) => {
                 });
         }
         else if (type == "passwd") {
+            let obj = crypto.createHash('md5');
+            const en_data = obj.update(data).digest('hex');
             db.query(`UPDATE Users SET Password = ? WHERE username = ? `,
-                [data, username],
+                [en_data, username],
                 (err, results) => {
                     if (err) {
                         LogMsg(`修改用户密码错误: ${err}`);
@@ -641,23 +630,28 @@ adminRouter.post('/delete', (req, res) => {
             else {
                 for (let i = 0; i < rows.length; i++) {
                     if (rows[i].Password == en_password) {
-                        LogMsg(`删除者认证成功，账号：${username} 密码：${en_password} ip: ${req.ip.substring(7, req.ip.length)}`)
+                        LogMsg(`删除者认证成功，账号：${req.session.username} 密码：${en_password} ip: ${req.ip.substring(7, req.ip.length)}`)
                         resolve()
                     }
                 }
             }
+            reject("密码错误")
         })
     })
     promise.then(result => {
         db.query(`DELETE FROM Users WHERE Username = ?`, username, (err, results, fields) => {
             if (err) {
                 LogMsg(`删除用户失败: ${err}`)
-                return res.status(503).send({ success: true, msg: "删除失败" });
+                return res.status(503).send({ success: false, msg: "删除失败" });
+            }
+            else {
+                LogMsg(`删除用户成功: ${username}`)
+                return res.status(200).send({ success: true, msg: "删除成功" });
             }
         });
     }).catch(error => {
         LogMsg(error)
-        return res.status(503).send({ success: true, msg: "删除成功" });
+        return res.status(503).send({ success: false, msg: "删除失败" });
     })
 });
 
@@ -665,11 +659,12 @@ adminRouter.post('/update_trap', (req, res) => {
     if (!req.session.username) {
         return res.status(403).send({ success: false, msg: '未登录' });
     }
+    const username = req.body.Hostname
     const type = req.body.type
     const data = req.body.data
     LogMsg(`修改信息请求 target: ${type} Threshold: ${data}`)
-    db.query(`UPDATE Users SET ${type} = ?`,
-        [data],
+    db.query(`UPDATE Devices_trap SET ${type} = ? WHERE Hostname = ?`,
+        [data, username],
         (err, results) => {
             if (err) {
                 LogMsg(`修改trap阈值错误: ${err}`);
