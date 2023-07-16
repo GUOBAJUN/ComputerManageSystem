@@ -7,6 +7,7 @@ const cors = require('cors')
 const session = require('express-session');
 var dgram = require('dgram');
 const crypto = require('crypto');
+const { resolve } = require('path');
 
 const db = mysql.createConnection(config.MySQLConnectionOption);
 
@@ -70,7 +71,7 @@ function Trap(session_list, SendBuff) {
 }
 
 //提供给manager, 登录
-adminRouter.post('/login', (req, res) => {
+adminRouter.post('/login',async (req, res) => {
     const username = req.body.Account
     var password = req.body.Password
 
@@ -95,7 +96,7 @@ adminRouter.post('/login', (req, res) => {
         }
         for (let i = 0; i < rows.length; i++) {
             if (rows[i].Password == en_password) {
-                LogMsg(`登录成功，账号：${username} 密码：${en_password} ip: ${req.ip}`)
+                LogMsg(`登录成功，账号：${username} 密码：${en_password} ip: ${req.ip.substring(7, req.ip.length)}`)
                 req.session.username = username;
                 req.session.level = rows[i]["Permission"];
                 req.session.ip = req.ip.substring(7, req.ip.length)
@@ -107,6 +108,7 @@ adminRouter.post('/login', (req, res) => {
         LogMsg("登录失败，密码错误")
         return res.status(403).send({ success: false, msg: '用户或密码错误' });
     })
+
 })
 
 adminRouter.post('/register', (req, res) => {
@@ -488,9 +490,9 @@ adminRouter.get('/dashboard', (req, res) => {
                     Disk_total += Number.parseFloat(xx[key]["Total"].replace("GB", ""))
                 }
             }
-            if (num != 0){
+            if (num != 0) {
                 CPU_avg = CPU_avg / num
-            Memory_avg = Memory_avg / num
+                Memory_avg = Memory_avg / num
             }
             Used_Rate = Disk_Used / Disk_total;
             Used_Rate = Math.round(parseInt(Used_Rate * 1000)) / 10
@@ -508,7 +510,7 @@ adminRouter.get('/dashboard', (req, res) => {
                 Total: results.length
             }
             for (let key in msg) {
-                if (msg[key].type ) {
+                if (msg[key].type) {
                     msg[key] = 0
                 }
             }
@@ -545,6 +547,143 @@ adminRouter.get('/user_all', (req, res) => {
         }
     });
 
+});
+
+adminRouter.get('/update', (req, res) => {
+    if (!req.session.username) {
+        return res.status(403).send({ success: false, msg: '未登录' });
+    }
+    const type = req.body.type
+    const username = req.body.username
+    let obj = crypto.createHash('md5');
+    const en_password = obj.update(req.body.password).digest('hex');
+    const data = req.body.data
+    LogMsg(`修改信息请求 from: ${req.session.username} target: ${username}`)
+    const promise = new Promise((resolve, reject) => {
+        db.query("SELECT * FROM Users WHERE Username = ?", [username], function (err, rows) {
+            if (err) {
+                let msg = `修改目标查询失败: ${err}`
+                reject(msg)
+            }
+            else if (rows == undefined || rows == "") {
+                let msg = "用户不存在，不应该出现的错误！"
+                reject(msg)
+            }
+            else {
+                for (let i = 0; i < rows.length; i++) {
+                    if (rows[i].Password == en_password) {
+                        LogMsg(`修改者认证成功，账号：${username} 密码：${en_password} ip: ${req.ip.substring(7, req.ip.length)}`)
+                        resolve()
+                    }
+                }
+            }
+        })
+    })
+    promise.then(result => {
+        if (type == "permission") {
+            db.query(`UPDATE Users SET Permission = ? WHERE username = ? `,
+                [data, username],
+                (err, results) => {
+                    if (err) {
+                        LogMsg(`修改用户权限错误: ${err}`);
+                        return res.status(503).send({ success: false, msg: "修改失败" });
+                    }
+                    else {
+                        LogMsg(`修改用户权限成功`);
+                        return res.status(200).send({ success: true, msg: "修改成功" });
+                    }
+                });
+        }
+        else if (type == "passwd") {
+            db.query(`UPDATE Users SET Password = ? WHERE username = ? `,
+                [data, username],
+                (err, results) => {
+                    if (err) {
+                        LogMsg(`修改用户密码错误: ${err}`);
+                        return res.status(503).send({ success: false, msg: "修改失败" });
+                    }
+                    else {
+                        LogMsg(`修改用户密码成功`);
+                        return res.status(200).send({ success: true, msg: "修改成功" });
+                    }
+                });
+        }
+        else {
+            let msg = "type数据错误"
+            return res.status(403).send({ success: true, msg: "修改失败" });
+            reject(msg)
+        }
+    }).catch(error => {
+        LogMsg(error)
+        return res.status(503).send({ success: true, msg: "修改失败" });
+    })
+
+    LogMsg(`查询用户信息`)
+});
+
+adminRouter.get('/delete', (req, res) => {
+    if (!req.session.username) {
+        return res.status(403).send({ success: false, msg: '未登录' });
+    }
+    const type = req.body.type
+    const username = req.body.username
+    let obj = crypto.createHash('md5');
+    const en_password = obj.update(req.body.password).digest('hex');
+    LogMsg(`删除用户请求 from: ${req.session.username} target: ${username}`)
+    const promise = new Promise((resolve, reject) => {
+        db.query("SELECT * FROM Users WHERE Username = ?", [username], function (err, rows) {
+            if (err) {
+                let msg = `修改目标查询失败: ${err}`
+                reject(msg)
+            }
+            else if (rows == undefined || rows == "") {
+                let msg = "用户不存在，不应该出现的错误！"
+                reject(msg)
+            }
+            else {
+                for (let i = 0; i < rows.length; i++) {
+                    if (rows[i].Password == en_password) {
+                        LogMsg(`删除者认证成功，账号：${username} 密码：${en_password} ip: ${req.ip.substring(7, req.ip.length)}`)
+                        resolve()
+                    }
+                }
+            }
+        })
+    })
+    promise.then(result => {
+        db.query(`DELETE FROM Users WHERE Username = ?`, username, (err, results, fields) => {
+            if (err) {
+                LogMsg(`删除用户失败: ${err}`)
+                return res.status(503).send({ success: true, msg: "删除失败" });
+            }
+        });
+    }).catch(error => {
+        LogMsg(error)
+        return res.status(503).send({ success: true, msg: "删除成功" });
+    })
+
+    LogMsg(`查询用户信息`)
+});
+
+adminRouter.get('/update_trap', (req, res) => {
+    if (!req.session.username) {
+        return res.status(403).send({ success: false, msg: '未登录' });
+    }
+    const type = req.body.type
+    const data = req.body.data
+    LogMsg(`修改信息请求 target: ${type} Threshold: ${data}`)
+    db.query(`UPDATE Users SET ${type} = ?`,
+        [data],
+        (err, results) => {
+            if (err) {
+                LogMsg(`修改trap阈值错误: ${err}`);
+                return res.status(503).send({ success: false, msg: "修改失败" });
+            }
+            else {
+                LogMsg(`修改trap阈值成功`);
+                return res.status(200).send({ success: true, msg: "修改成功" });
+            }
+        });
 });
 
 app.use('/', agentRouter);
