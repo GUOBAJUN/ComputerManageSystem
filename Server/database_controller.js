@@ -395,11 +395,14 @@ db.connect((err) => {
 //         }
 //     });
 
-// db.query(`SELECT t1.Hostname, t1.CPU, t1.Memory, t1.Net
-//     FROM Devices_trap t1
-//     INNER JOIN Devices t2 ON t1.Hostname = t2.Hostname
-//     ORDER BY t2.Time_Stamp DESC
-//     LIMIT 1`, 
+// db.query(`SELECT *
+// FROM Devices_trap t1
+// JOIN Devices t2 ON t1.Hostname = t2.Hostname
+// WHERE t2.Time_Stamp = (
+//   SELECT MAX(Time_Stamp)
+//   FROM Devices
+//   WHERE Hostname = t1.Hostname
+// )`,
 //     (err, results, fields) => {
 //         if (err) {
 //             msg = `查询trap错误: ${err}`
@@ -410,14 +413,28 @@ db.connect((err) => {
 //         }
 //     });
 
-db.query(`SELECT *
-    FROM Devices_trap`, 
-    (err, results, fields) => {
-        if (err) {
-            msg = `查询trap错误: ${err}`
-            LogMsg(msg)
-        }
-        else {
-            LogMsg(JSON.stringify(results))
-        }
-    });
+// db.query(`SELECT *
+// FROM session;
+// `,
+//     (err, results, fields) => {
+//         if (err) {
+//             msg = `查询trap错误: ${err}`
+//             LogMsg(msg)
+//         }
+//         else {
+//             for (let i = 0; i < results.length; i++) {
+//                 LogMsg(results[i]["session_data"])
+//                 LogMsg(JSON.parse(results[i]["session_data"])["ip"])
+//             }
+//         }
+//     });
+const Hostname = "DESKTOP-I6JAGL6"
+const query = `SELECT * FROM Devices_trap WHERE Hostname = ?`
+db.query(query, Hostname, (err, rows) => {
+    if (err) {
+        LogMsg(`查询trap信息失败`)
+    }
+    else {
+        LogMsg(`查询trap成功: ${JSON.stringify(rows[0])}`)
+    }
+});

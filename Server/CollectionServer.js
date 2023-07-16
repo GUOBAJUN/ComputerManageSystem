@@ -26,7 +26,8 @@ const sessionStore = new MySQLStore({
         }
     },
     clearExpired: true,
-    autoReconect: true
+    autoReconect: true,
+    checkExpirationInterval: 100000,
 })
 
 const db = mysql.createConnection(config.MySQLConnectionOption);
@@ -52,7 +53,7 @@ var sessionMiddleware = session({
         maxAge: 600000
     },
     resave: true,
-    saveUninitialized: true,
+    saveUninitialized: false,
     status: true,//登录状态
 })
 app.use(sessionMiddleware);
@@ -139,17 +140,19 @@ adminRouter.post('/register', (req, res) => {
 
 })
 
-adminRouter.post('/logout', (req, res) => {
-    req.session.username = null;
+adminRouter.get('/logout', (req, res) => {
+    req.status(200).send({ success: true })
+    req.session.destroy()
 })
 
 //提供给agent, 上传设备信息
 agentRouter.post('/report/performance', (req, res) => {
     const body = req.body;
-    LogMsg(`接收设备信息(performance): ${JSON.stringify(body["Hostname"])}`)
-    if (body == null) {
+    if (body["Hostname"] == null) {
         return res.status(400).send()
     }
+    LogMsg(`接收设备信息(performance): ${JSON.stringify(body["Hostname"])}`)
+
     for (let key in body) {
         if (body[key] == null) {
             LogMsg(`空数据 from ${req.ip}`)
@@ -328,8 +331,6 @@ agentRouter.post('/admin/config', (req, res) => {
     });
 })
 
-
-
 //查询某设备详细信息，pass中
 adminRouter.post('/status_single', (req, res) => {
     if (!req.session.username) {
@@ -379,6 +380,27 @@ adminRouter.post('/status_single', (req, res) => {
     }).catch(error => {
         LogMsg(error)
         return res.status(403).send({ success: false, msg: "查询失败" });
+    });
+});
+
+adminRouter.get('/get_trap', (req, res) => {
+    if (!req.session.username) {
+        return res.status(403).send({ success: false, msg: '未登录' });
+    }
+    const Hostname = req.headers.Hostname
+    LogMsg(`查询设备trap信息: ${Hostname}`)
+    //查询单个设备最新数据
+
+    const query = `SELECT * FROM Devices_trap WHERE Hostname = ?`
+    db.query(query, Hostname, (err, rows) => {
+        if (err) {
+            LogMsg(`查询trap信息失败`)
+            return res.status(500).send({success: false})
+        }
+        else {
+            LogMsg(`查询trap成功: ${rows[0]}`)
+            return res.status(200).send(rows[0])
+        }
     });
 });
 
@@ -697,27 +719,3 @@ server = app.listen(port, () => {
     console.log('Web Server Up!')
 })
 
-//////////////////////------发送预警------///////////////////////////
-
-// var udp_client = dgram.createSocket('udp4');
-
-// udp_client.on('close', function () {
-//     console.log('udp client closed.')
-// })
-
-// //错误处理
-// udp_client.on('error', function () {
-//     console.log('some error on udp client.')
-// })
-
-// // 接收消息
-// udp_client.on('message', function (msg, rinfo) {
-//     console.log(`receive message from ${rinfo.address}:${rinfo.port}：${msg}`);
-// })
-
-// //定时向服务器发送消息
-// setInterval(function () {
-//     var SendBuff = 'hello 123.';
-//     var SendLen = SendBuff.length;
-//     udp_client.send(SendBuff, 0, SendLen, 5678, '172.30.20.10');
-// }, 3000);

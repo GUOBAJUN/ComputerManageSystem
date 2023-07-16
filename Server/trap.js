@@ -1,8 +1,17 @@
 const mysql = require('mysql')
 var dgram = require('dgram');
 const bodyParser = require('body-parser');
-const { error } = require('console');
-const MySQLStore = require('express-mysql-session')(session)
+const config = require('./config');
+const session = require('express-session');
+
+const db = mysql.createConnection(config.MySQLConnectionOption);
+
+db.connect((err) => {
+    if (err) {
+        console.log(err)
+    }
+    console.log('Connected to MySQL database!');
+});
 
 function LogMsg(msg) {
     let date = new Date()
@@ -10,37 +19,58 @@ function LogMsg(msg) {
 }
 
 function Scan() {
-    db.query(`SELECT *
-    FROM Devices_trap t1
-    INNER JOIN table2 t2 ON t1.Hostname = t2.Hostname
-    ORDER BY t1.time_stamp DESC
-    LIMIT 1`, 
-    (err, results, fields) => {
-        if (err) {
-            msg = `查询trap错误: ${err}`
-            reject(msg)
-        }
-        else {
-            resolve(results)
-        }
-    });
+    LogMsg("扫描中")
+    const promise = new Promise((resolve, reject) => {
+        db.query(`SELECT *
+            FROM Devices_trap t1
+            JOIN Devices t2 ON t1.Hostname = t2.Hostname
+            WHERE t2.Time_Stamp = (
+            SELECT MAX(Time_Stamp)
+            FROM Devices
+            WHERE Hostname = t1.Hostname
+        )`,
+            (err, rows, fields) => {
+                if (err) {
+                    LogMsg(`Scan 错误: ${JSON.stringify(err)}`)
+                    return
+                }
+                // LogMsg(JSON.stringify(rows))
+                for (let i = 0; i < rows.length; i++) {
+                    // if (parseFloat(rows[i]["CPU Usage"]) > parseFloat(rows[i]["CPU"])) {
+                    if (parseFloat(rows[i]["CPU_Usage"]) > 0) {
+                        var SendBuff = { type: "CPU_high", Hostname: rows[i]["Hostname"], data: rows[i]['CPU_Usage'] }
+                        resolve(SendBuff)
 
-    for (let i = 0; i < rows.length; i++) {
-        if (parseFloat(rows[i]) > ) {
-            var SendBuff = JSON.stringify({ type: "CPU_high", Hostname: body["Hostname"], data: body['CPU Usage'] })
-            Trap(session_list, SendBuff)
-        }
-        //发出Memory警告
-        if (parseFloat(body["Memory Usage"]) > 80) {
-            var SendBuff = JSON.stringify({ type: "Memory_high", Hostname: body["Hostname"], data: body['Memory Usage'] })
-            Trap(session_list, SendBuff)
-        }
-        //发出Network警告
-        if (parseFloat(body["Network Usage"]) > 80) {
-            var SendBuff = JSON.stringify({ type: "Network_high", Hostname: body["Hostname"], data: parseFloat(body['Network Usage']) })
-            Trap(session_list, SendBuff)
-        }
-    }
+                    }
+                    //发出Memory警告
+                    if (parseFloat(rows[i]["Memory_Usage"]) > parseFloat(rows[i]["Memory"])) {
+                        var SendBuff = { type: "Memory_high", Hostname: rows[i]["Hostname"], data: rows[i]['Memory_Usage'] }
+                        resolve(SendBuff)
+                    }
+                    //发出Network警告
+                    if (parseFloat(rows[i]["Network_Usage"]) > parseFloat(rows[i]["Net"])) {
+                        var SendBuff = { type: "Network_high", Hostname: rows[i]["Hostname"], data: parseFloat(rows[i]['Network_Usage']) }
+                        resolve(SendBuff)
+                    }
+                }
+                reject()
+            })
+
+    }).then((SendBuff) => {
+        db.query(`SELECT session_data FROM session`, (err, session_list) => {
+            if (err) {
+                LogMsg(`查找需发送trap对象错误: ${JSON.stringify(err)}`)
+                return
+            }
+            for (let i = 0; i < session_list.length; i++) {
+                data = JSON.parse(session_list[i]["session_data"])
+                if (data["ip"]) {
+                    // LogMsg(JSON.stringify(data))
+                    Send(JSON.stringify(SendBuff), data["ip"])
+                }
+            }
+        })
+    })
 }
 
 function Send(SendBuff, ip) {
@@ -50,25 +80,5 @@ function Send(SendBuff, ip) {
     udp_client.send(SendBuff, 0, SendLen, 10087, ip);
 }
 
-function Trap(rows) {
-
-    //通过session获取ip池, 然后发送
-    ip_list = []
-    var SendLen = SendBuff.length;
-    for (let i = session_list.length - 1; i >= 0; i--) {
-        // if (!session_list[i].cookie.expires || req.session.cookie.expires < new Date()){
-        //删除过期session
-        if (!session_list[i].cookie.expires || !session_list[i].username) {
-            session_list = session_list.filter(function (item) {
-                return item !== session_list[i]
-            });
-        }
-        else {
-            ip_list.push(session_list[i].ip)
-        }
-    }
-    for (let i = 0; i < ip_list.length; i++) {
-
-    }
-}
+myid = setInterval(Scan, 5000);
 
