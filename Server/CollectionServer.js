@@ -387,7 +387,7 @@ adminRouter.get('/get_trap', (req, res) => {
     if (!req.session.username) {
         return res.status(403).send({ success: false, msg: '未登录' });
     }
-    const Hostname = req.headers.Hostname
+    const Hostname = req.headers.hostname
     LogMsg(`查询设备trap信息: ${Hostname}`)
     //查询单个设备最新数据
 
@@ -398,7 +398,7 @@ adminRouter.get('/get_trap', (req, res) => {
             return res.status(500).send({success: false})
         }
         else {
-            LogMsg(`查询trap成功: ${rows[0]}`)
+            LogMsg(`查询trap成功: ${JSON.stringify(rows[0])}`)
             return res.status(200).send(rows[0])
         }
     });

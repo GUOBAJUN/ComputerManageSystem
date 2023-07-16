@@ -37,7 +37,7 @@ function Scan() {
                 // LogMsg(JSON.stringify(rows))
                 for (let i = 0; i < rows.length; i++) {
                     // if (parseFloat(rows[i]["CPU Usage"]) > parseFloat(rows[i]["CPU"])) {
-                    if (parseFloat(rows[i]["CPU_Usage"]) > 0) {
+                    if (parseFloat(rows[i]["CPU_Usage"]) > parseFloat(rows[i]["CPU"])) {
                         var SendBuff = { type: "CPU_high", Hostname: rows[i]["Hostname"], data: rows[i]['CPU_Usage'] }
                         resolve(SendBuff)
 
@@ -70,6 +70,8 @@ function Scan() {
                 }
             }
         })
+    }).catch((error)=>{
+        return
     })
 }
 
