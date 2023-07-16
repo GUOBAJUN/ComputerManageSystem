@@ -428,13 +428,43 @@ db.connect((err) => {
 //             }
 //         }
 //     });
-const Hostname = "DESKTOP-I6JAGL6"
-const query = `SELECT * FROM Devices_trap WHERE Hostname = ?`
-db.query(query, Hostname, (err, rows) => {
-    if (err) {
-        LogMsg(`查询trap信息失败`)
-    }
-    else {
-        LogMsg(`查询trap成功: ${JSON.stringify(rows[0])}`)
-    }
-});
+// const Hostname = "DESKTOP-I6JAGL6"
+// const query = `SELECT * FROM Devices_trap WHERE Hostname = ?`
+// db.query(query, Hostname, (err, rows) => {
+//     if (err) {
+//         LogMsg(`查询trap信息失败`)
+//     }
+//     else {
+//         LogMsg(`查询trap成功: ${JSON.stringify(rows[0])}`)
+//     }
+// });
+
+
+const Hostname = "LAPTOP-7ND8A1C8"
+const type = "CPU"
+const data = 70
+LogMsg(`修改信息请求 target: ${type} Threshold: ${data}`)
+db.query(`UPDATE Devices_trap SET ${type} = ? WHERE Hostname = ?`,
+    [data, Hostname],
+    (err, results) => {
+        if (err) {
+            LogMsg(`修改trap阈值错误: ${err}`);
+            // return res.status(503).send({ success: false, msg: "修改失败" });
+        }
+        else {
+            LogMsg(`修改trap阈值成功`);
+            // return res.status(200).send({ success: true, msg: "修改成功" });
+        }
+    });
+
+db.query(`SELECT * FROM Devices_trap`,
+    (err, results) => {
+        if (err) {
+            LogMsg(`错误: ${err}`);
+            // return res.status(503).send({ success: false, msg: "修改失败" });
+        }
+        else {
+            LogMsg(`${JSON.stringify(results)}`);
+            // return res.status(200).send({ success: true, msg: "修改成功" });
+        }
+    });

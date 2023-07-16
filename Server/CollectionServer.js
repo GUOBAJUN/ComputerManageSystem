@@ -141,8 +141,9 @@ adminRouter.post('/register', (req, res) => {
 })
 
 adminRouter.get('/logout', (req, res) => {
-    req.status(200).send({ success: true })
+    res.status(200).send({ success: true })
     req.session.destroy()
+    LogMsg(`用户 ${req.username} 退出登录`)
 })
 
 //提供给agent, 上传设备信息
@@ -695,12 +696,13 @@ adminRouter.post('/update_trap', (req, res) => {
     if (!req.session.username) {
         return res.status(403).send({ success: false, msg: '未登录' });
     }
-    const username = req.body.Hostname
+    const Hostname = req.body.Hostname
+    LogMsg(JSON.stringify(req.body))
     const type = req.body.type
-    const data = req.body.data
+    const data = parseInt(req.body.data)
     LogMsg(`修改信息请求 target: ${type} Threshold: ${data}`)
     db.query(`UPDATE Devices_trap SET ${type} = ? WHERE Hostname = ?`,
-        [data, username],
+        [data, Hostname],
         (err, results) => {
             if (err) {
                 LogMsg(`修改trap阈值错误: ${err}`);
