@@ -549,7 +549,7 @@ adminRouter.get('/user_all', (req, res) => {
 
 });
 
-adminRouter.get('/update', (req, res) => {
+adminRouter.post('/update', (req, res) => {
     if (!req.session.username) {
         return res.status(403).send({ success: false, msg: '未登录' });
     }
@@ -621,7 +621,7 @@ adminRouter.get('/update', (req, res) => {
     LogMsg(`查询用户信息`)
 });
 
-adminRouter.get('/delete', (req, res) => {
+adminRouter.post('/delete', (req, res) => {
     if (!req.session.username) {
         return res.status(403).send({ success: false, msg: '未登录' });
     }
@@ -665,7 +665,7 @@ adminRouter.get('/delete', (req, res) => {
     LogMsg(`查询用户信息`)
 });
 
-adminRouter.get('/update_trap', (req, res) => {
+adminRouter.post('/update_trap', (req, res) => {
     if (!req.session.username) {
         return res.status(403).send({ success: false, msg: '未登录' });
     }
