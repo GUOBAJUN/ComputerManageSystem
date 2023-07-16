@@ -146,7 +146,13 @@ adminRouter.post('/logout', (req, res) => {
 //提供给agent, 上传设备信息
 agentRouter.post('/report/performance', (req, res) => {
     const body = req.body;
-    LogMsg(`接收设备信息(performance): ${body["Hostname"]}`)
+    LogMsg(`接收设备信息(performance): ${JSON.stringify(body["Hostname"])}`)
+    for (let key in body){
+        if (body[key] == null){
+            LogMsg(`空数据 from ${req.ip}`)
+            return res.status(400).send("{??????}")
+        }
+    }
     //发出CPU警告
     //存入数据库
     db.query(`INSERT INTO Devices (Hostname, Time_Stamp, CPU_Usage, Memory_Usage, Swap_Usage, Disk_Usage, Network_Usage, Package_Loss_Rate) VALUES(?,?,?,?,?,?,?,?)`,
@@ -161,6 +167,81 @@ agentRouter.post('/report/performance', (req, res) => {
                 return res.status(200).send('{success: true}');
             }
         });
+})
+
+//提供给agent, 上传设备信息
+agentRouter.post('/report/systeminfo', (req, res) => {
+    const body = req.body;
+    LogMsg(`接收系统信息(systeminfo)：${JSON.stringify(body)}`)
+    flag = 0;
+    //查询旧数据
+    const promise = new Promise((resolve, reject) => {
+        // 异步操作
+        db.query("SELECT * FROM Devices_System WHERE Hostname = ?", [body['Hostname']], function (err, rows) {
+            LogMsg("正在查询系统信息数据库......")
+            if (err) {
+                LogMsg(`查询系统数据出现错误: ${err}`)
+                flag = 0;
+                reject(flag)
+            }
+            if (rows == undefined || rows == "") {
+                LogMsg(`设备 ${body['Hostname']} 未录入系统，准备录入系统数据库`)
+                flag = 1;
+                resolve(flag)
+            }
+            else {
+                LogMsg(`设备：${body['Hostname']} 已经录入系统，准备更新数据`)
+                flag = 2;
+                resolve(flag)
+            }
+        })
+    });
+    // return res.status(403).send({ success: false, msg: '失败' });;
+
+    promise.then(result => {
+        if (result == 1) {
+            db.query(`INSERT INTO Devices_System (Hostname, Time_Stamp, OS_Name, OS_Version, OS_Arch, CPU_Name, RAM) VALUES(?,?,?,?,?,?,?)`,
+                [body["Hostname"], body["Time Stamp"], body["OS Name"], body["OS Version"], body["OS Arch"],
+                body["CPU Name"], body["RAM"]], (err, result) => {
+                    if (err){
+                        LogMsg(`系统信息录入失败 Devices_System: ${JSON.stringify(result)}`);
+                        return res.status(500).send({ success: false });
+                    }
+                });
+            db.query(`INSERT INTO Devices_trap Hostname = ?`,
+                [body["Hostname"]], (err, result) => {
+                    if (err) {
+                        LogMsg(`系统信息录入失败: ${JSON.stringify(result)}`);
+                        return res.status(500).send({ success: false });
+                    }
+                    else {
+                        LogMsg(`设备:${body["Hostname"]}信息录入成功`)
+                        return res.status(200).send({ success: true });
+                    }
+                });
+
+        }
+        //已经录入
+        else if (result == 2) {
+            db.query(`UPDATE Devices_System SET Time_Stamp = ?, OS_Name = ?, OS_Version = ?, 
+            OS_Arch = ?, CPU_Name = ?, RAM = ? WHERE Hostname = ? `,
+                [body["Time Stamp"], body["OS Name"], body["OS Version"], body["OS Arch"],
+                body["CPU Name"], body["RAM"], body["Hostname"]],
+                (err, result) => {
+                    if (err) throw err;
+                    LogMsg(JSON.stringify(result));
+                });
+            LogMsg(`设备: ${body["Hostname"]} 信息更新成功`)
+            return res.status(200).send({ success: true });
+        }
+        else {
+            LogMsg(`未预知的错误`)
+            return res.status(403).send({ success: false });
+        }
+    }).catch(error => {
+        LogMsg(`错误`)
+        return res.status(403).send({ success: false });
+    });
 })
 
 //提供给agent, 上传设备信息
@@ -246,75 +327,7 @@ agentRouter.post('/admin/config', (req, res) => {
     });
 })
 
-//提供给agent, 上传设备信息
-agentRouter.post('/report/systeminfo', (req, res) => {
-    const body = req.body;
-    LogMsg(`接收系统信息(systeminfo)：${JSON.stringify(body)}`)
-    flag = 0;
-    //查询旧数据
-    const promise = new Promise((resolve, reject) => {
-        // 异步操作
-        db.query("SELECT * FROM Devices_System WHERE Hostname = ?", [body['Hostname']], function (err, rows) {
-            LogMsg("正在查询系统信息数据库......")
-            if (err) {
-                LogMsg(`查询系统数据出现错误: ${err}`)
-                flag = 0;
-                reject(flag)
-            }
-            if (rows == undefined || rows == "") {
-                LogMsg(`设备 ${body['Hostname']} 未录入系统，准备录入系统数据库`)
-                flag = 1;
-                resolve(flag)
-            }
-            else {
-                LogMsg(`设备：${body['Hostname']} 已经录入系统，准备更新数据`)
-                flag = 2;
-                resolve(flag)
-            }
-        })
-    });
-    // return res.status(403).send({ success: false, msg: '失败' });;
 
-    promise.then(result => {
-        if (result == 1) {
-            db.query(`INSERT INTO Devices_System (Hostname, Time_Stamp, OS_Name, OS_Version, OS_Arch, CPU_Name, RAM) VALUES(?,?,?,?,?,?,?)`,
-                [body["Hostname"], body["Time Stamp"], body["OS Name"], body["OS Version"], body["OS Arch"],
-                body["CPU Name"], body["RAM"]], (err, result) => {
-                    if (err) throw err;
-                    LogMsg(`系统信息录入失败: ${result}`);
-                    return res.status(500).send({ success: false });
-                });
-            db.query(`INSERT INTO Devices_trap Hostname = ?`,
-                [body["Hostname"]], (err, result) => {
-                    if (err) throw err;
-                    LogMsg(`系统信息录入失败: ${result}`);
-                    return res.status(500).send({ success: false });
-                });
-            LogMsg(`设备:${body["Hostname"]}信息录入成功`)
-            return res.status(200).send({ success: true });
-        }
-        //已经录入
-        else if (result == 2) {
-            db.query(`UPDATE Devices_System SET Time_Stamp = ?, OS_Name = ?, OS_Version = ?, 
-            OS_Arch = ?, CPU_Name = ?, RAM = ? WHERE Hostname = ? `,
-                [body["Time Stamp"], body["OS Name"], body["OS Version"], body["OS Arch"],
-                body["CPU Name"], body["RAM"], body["Hostname"]],
-                (err, result) => {
-                    if (err) throw err;
-                    LogMsg(JSON.stringify(result));
-                });
-            LogMsg(`设备: ${body["Hostname"]} 信息更新成功`)
-            return res.status(200).send({ success: true });
-        }
-        else {
-            LogMsg(`未预知的错误`)
-            return res.status(403).send({ success: false });
-        }
-    }).catch(error => {
-        LogMsg(`错误`)
-        return res.status(403).send({ success: false });
-    });
-})
 
 //查询某设备详细信息，pass中
 adminRouter.post('/status_single', (req, res) => {

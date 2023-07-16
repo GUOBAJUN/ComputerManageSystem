@@ -183,13 +183,14 @@ db.connect((err) => {
 //     console.log(results);
 // });
 
-// db.query(`DELETE FROM Users WHERE Username = ?`, "WH",(err, results, fields) => {
+// db.query(`DELETE FROM Devices_System`,(err, results, fields) => {
 //     if (err) {
 //         console.log(err)
 //         //throw err;
 //     }
 //     console.log(results);
 // });
+
 
 // db.query(`
 //   CREATE TABLE IF NOT EXISTS Devices_System (
@@ -396,13 +397,13 @@ db.connect((err) => {
 //     });
 
 db.query(`SELECT *
-    FROM Devices_trap`, 
+    FROM Devices_System`, 
     (err, results, fields) => {
         if (err) {
             msg = `查询trap错误: ${err}`
             LogMsg(msg)
         }
         else {
-            LogMsg(results)
+            LogMsg(`查询到数据: ${JSON.stringify(results)}`)
         }
     });
