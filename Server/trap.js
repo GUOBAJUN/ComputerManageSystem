@@ -10,55 +10,37 @@ function LogMsg(msg) {
 }
 
 function Scan() {
-    const promise = new Promise((reject, resolve) => {
-        let Threshold
-        db.query(`SELECT * FROM Devices_trap`, (err, results, fields) => {
-            if (err) {
-                msg = `查询trap错误: ${err}`
-                reject(msg)
-            }
-            else{
-                resolve(results)
-            }
-        });
-    })
-    promise.then(results => {
-        const query = `
-            SELECT * FROM Devices
-            WHERE Hostname = '${Hostname}'
-            ORDER BY Time_Stamp DESC
-            LIMIT 1;
-        `;
-        db.query(query, (error, rows, fields) => {
-            if (error) {
-                // console.error('Error executing query: ' + error.stack);
-                LogMsg(`${Hostname} perform数据查询失败: ' + ${error.stack}`)
-            }
-            else if (rows == undefined || rows == "") {
-                LogMsg(`${Hostname} perform数据查询失败: 不存在`)
-            }
-            else {
-                for (let i = 0; i < rows.length; i++){
-                    if (parseFloat(rows[i]) > ) {
-                        var SendBuff = JSON.stringify({ type: "CPU_high", Hostname: body["Hostname"], data: body['CPU Usage'] })
-                        Trap(session_list, SendBuff)
-                    }
-                    //发出Memory警告
-                    if (parseFloat(body["Memory Usage"]) > 80) {
-                        var SendBuff = JSON.stringify({ type: "Memory_high", Hostname: body["Hostname"], data: body['Memory Usage'] })
-                        Trap(session_list, SendBuff)
-                    }
-                    //发出Network警告
-                    if (parseFloat(body["Network Usage"]) > 80) {
-                        var SendBuff = JSON.stringify({ type: "Network_high", Hostname: body["Hostname"], data: parseFloat(body['Network Usage']) })
-                        Trap(session_list, SendBuff)
-                    }
-                }
-            }
-        });
-    }).catch(error => {
-        LogMsg(error)
-    })
+    db.query(`SELECT *
+    FROM Devices_trap t1
+    INNER JOIN table2 t2 ON t1.Hostname = t2.Hostname
+    ORDER BY t1.time_stamp DESC
+    LIMIT 1`, 
+    (err, results, fields) => {
+        if (err) {
+            msg = `查询trap错误: ${err}`
+            reject(msg)
+        }
+        else {
+            resolve(results)
+        }
+    });
+
+    for (let i = 0; i < rows.length; i++) {
+        if (parseFloat(rows[i]) > ) {
+            var SendBuff = JSON.stringify({ type: "CPU_high", Hostname: body["Hostname"], data: body['CPU Usage'] })
+            Trap(session_list, SendBuff)
+        }
+        //发出Memory警告
+        if (parseFloat(body["Memory Usage"]) > 80) {
+            var SendBuff = JSON.stringify({ type: "Memory_high", Hostname: body["Hostname"], data: body['Memory Usage'] })
+            Trap(session_list, SendBuff)
+        }
+        //发出Network警告
+        if (parseFloat(body["Network Usage"]) > 80) {
+            var SendBuff = JSON.stringify({ type: "Network_high", Hostname: body["Hostname"], data: parseFloat(body['Network Usage']) })
+            Trap(session_list, SendBuff)
+        }
+    }
 }
 
 function Send(SendBuff, ip) {
@@ -69,7 +51,7 @@ function Send(SendBuff, ip) {
 }
 
 function Trap(rows) {
-    
+
     //通过session获取ip池, 然后发送
     ip_list = []
     var SendLen = SendBuff.length;
@@ -86,7 +68,7 @@ function Trap(rows) {
         }
     }
     for (let i = 0; i < ip_list.length; i++) {
-        
+
     }
 }
 

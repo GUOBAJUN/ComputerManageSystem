@@ -394,3 +394,15 @@ db.connect((err) => {
 //             // return res.status(200).send({ success: true, msg: '查询成功', results: results });
 //         }
 //     });
+
+db.query(`SELECT *
+    FROM Devices_trap`, 
+    (err, results, fields) => {
+        if (err) {
+            msg = `查询trap错误: ${err}`
+            LogMsg(msg)
+        }
+        else {
+            LogMsg(results)
+        }
+    });
