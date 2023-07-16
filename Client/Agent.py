@@ -50,10 +50,10 @@ class CollectingAgent():
             try:
                 response = requests.post(url=self.MASTER+'report/performance',
                                          headers=headers,
-                                         data=json.load(fp))
+                                         data=json.dumps(json.load(fp)))
                 if response.status_code == 200:
                     fp.close()
-                    os.remove(file)
+                    os.remove(os.path.join('dump', file))
                 else:
                     print('Failed to report dumped data.')
                     break
