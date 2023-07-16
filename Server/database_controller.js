@@ -38,6 +38,21 @@ db.connect((err) => {
 // })
 
 // db.query(`
+//   CREATE TABLE IF NOT EXISTS Trap (
+//     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+//     CPU INT NOT NULL,
+//     Memory INT NOT NULL,
+//     Network INT NOT NULL
+//   )
+// `, (err) => {
+//   if (err) {
+//     console.log(err)
+//     throw err;
+//   }
+//   console.log('Table created!');
+// })
+
+// db.query(`
 //   DROP TABLE Users ;
 // `, (err) => {
 //   if (err) {
@@ -151,17 +166,15 @@ db.connect((err) => {
 // });
 
 
-// db.query(`SELECT * FROM Users`, (err, results, fields) => {
-//     if (err) {
-//         console.log(err)
-//         //throw err;
-//     }
-//     console.log(results);
-// });
+db.query(`SELECT * FROM Users`, (err, results, fields) => {
+    if (err) {
+        console.log(err)
+        //throw err;
+    }
+    console.log(results);
+});
 
-
-
-// db.query(`DELETE FROM Users WHERE Username = ?`, "root",(err, results, fields) => {
+// db.query(`DELETE FROM Users WHERE Username = ?`, "WH",(err, results, fields) => {
 //     if (err) {
 //         console.log(err)
 //         //throw err;
@@ -340,35 +353,35 @@ db.connect((err) => {
 //     });
 
 
-const query = `
-    SELECT t1.* FROM Devices t1
-    INNER JOIN (
-        SELECT Hostname, MAX(Time_Stamp) AS max_timestamp
-        FROM Devices
-        GROUP BY Hostname
-    ) t2
-    ON t1.Hostname = t2.Hostname AND t1.Time_Stamp = t2.max_timestamp GROUP BY t1.Hostname;
-  `;    
-    db.query(query, (error, results, fields) => {
-        if (error) {
-            // console.error('Error executing query: ' + error.stack);
-            LogMsg('Error executing query: ' + error.stack)
-            // return res.status(403).send({ success: false, msg: '查询失败' });;
-        }
-        else {
-            const time_now = new Date()
-            for (let i = 0; i < results.length; i++) {
-                if ((time_now - parseInt(results[i]['Time_Stamp']) / 1000000) > 30 * 1000) {
-                    //未存活，5min
-                    results[i]['live'] = 0
-                }
-                else {
-                    //存活
-                    results[i]['live'] = 1
-                }
-            }
-            LogMsg("成功查询所有设备概略信息")
-            LogMsg(JSON.stringify(results))
-            // return res.status(200).send({ success: true, msg: '查询成功', results: results });
-        }
-    });
+// const query = `
+//     SELECT t1.* FROM Devices t1
+//     INNER JOIN (
+//         SELECT Hostname, MAX(Time_Stamp) AS max_timestamp
+//         FROM Devices
+//         GROUP BY Hostname
+//     ) t2
+//     ON t1.Hostname = t2.Hostname AND t1.Time_Stamp = t2.max_timestamp GROUP BY t1.Hostname;
+//   `;
+//     db.query(query, (error, results, fields) => {
+//         if (error) {
+//             // console.error('Error executing query: ' + error.stack);
+//             LogMsg('Error executing query: ' + error.stack)
+//             // return res.status(403).send({ success: false, msg: '查询失败' });;
+//         }
+//         else {
+//             const time_now = new Date()
+//             for (let i = 0; i < results.length; i++) {
+//                 if ((time_now - parseInt(results[i]['Time_Stamp']) / 1000000) > 30 * 1000) {
+//                     //未存活，5min
+//                     results[i]['live'] = 0
+//                 }
+//                 else {
+//                     //存活
+//                     results[i]['live'] = 1
+//                 }
+//             }
+//             LogMsg("成功查询所有设备概略信息")
+//             LogMsg(JSON.stringify(results))
+//             // return res.status(200).send({ success: true, msg: '查询成功', results: results });
+//         }
+//     });
