@@ -166,17 +166,15 @@ db.connect((err) => {
 // });
 
 
-// db.query(`SELECT * FROM Users`, (err, results, fields) => {
-//     if (err) {
-//         console.log(err)
-//         //throw err;
-//     }
-//     console.log(results);
-// });
+db.query(`SELECT * FROM Users`, (err, results, fields) => {
+    if (err) {
+        console.log(err)
+        //throw err;
+    }
+    console.log(results);
+});
 
-
-
-// db.query(`DELETE FROM Users WHERE Username = ?`, "root",(err, results, fields) => {
+// db.query(`DELETE FROM Users WHERE Username = ?`, "WH",(err, results, fields) => {
 //     if (err) {
 //         console.log(err)
 //         //throw err;

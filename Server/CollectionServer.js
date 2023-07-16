@@ -71,7 +71,7 @@ function Trap(session_list, SendBuff) {
 }
 
 //提供给manager, 登录
-adminRouter.post('/login',async (req, res) => {
+adminRouter.post('/login', async (req, res) => {
     const username = req.body.Account
     var password = req.body.Password
 
@@ -560,7 +560,7 @@ adminRouter.post('/update', (req, res) => {
     const data = req.body.data
     LogMsg(`修改信息请求 from: ${req.session.username} target: ${username}`)
     const promise = new Promise((resolve, reject) => {
-        db.query("SELECT * FROM Users WHERE Username = ?", [username], function (err, rows) {
+        db.query("SELECT * FROM Users WHERE Username = ?", [req.session.username], function (err, rows) {
             if (err) {
                 let msg = `修改目标查询失败: ${err}`
                 reject(msg)
@@ -577,6 +577,7 @@ adminRouter.post('/update', (req, res) => {
                     }
                 }
             }
+            reject("密码错误")
         })
     })
     promise.then(result => {
@@ -610,15 +611,12 @@ adminRouter.post('/update', (req, res) => {
         }
         else {
             let msg = "type数据错误"
-            return res.status(403).send({ success: true, msg: "修改失败" });
-            reject(msg)
+            return res.status(403).send({ success: true, msg: msg });
         }
     }).catch(error => {
         LogMsg(error)
         return res.status(503).send({ success: true, msg: "修改失败" });
     })
-
-    LogMsg(`查询用户信息`)
 });
 
 adminRouter.post('/delete', (req, res) => {
@@ -631,7 +629,7 @@ adminRouter.post('/delete', (req, res) => {
     const en_password = obj.update(req.body.password).digest('hex');
     LogMsg(`删除用户请求 from: ${req.session.username} target: ${username}`)
     const promise = new Promise((resolve, reject) => {
-        db.query("SELECT * FROM Users WHERE Username = ?", [username], function (err, rows) {
+        db.query("SELECT * FROM Users WHERE Username = ?", [req.session.username], function (err, rows) {
             if (err) {
                 let msg = `修改目标查询失败: ${err}`
                 reject(msg)
@@ -661,8 +659,6 @@ adminRouter.post('/delete', (req, res) => {
         LogMsg(error)
         return res.status(503).send({ success: true, msg: "删除成功" });
     })
-
-    LogMsg(`查询用户信息`)
 });
 
 adminRouter.post('/update_trap', (req, res) => {
