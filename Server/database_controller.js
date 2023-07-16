@@ -183,14 +183,13 @@ db.connect((err) => {
 //     console.log(results);
 // });
 
-// db.query(`DELETE FROM Devices_System`,(err, results, fields) => {
+// db.query(`DELETE FROM Users WHERE Username = ?`, "WH",(err, results, fields) => {
 //     if (err) {
 //         console.log(err)
 //         //throw err;
 //     }
 //     console.log(results);
 // });
-
 
 // db.query(`
 //   CREATE TABLE IF NOT EXISTS Devices_System (
@@ -396,14 +395,29 @@ db.connect((err) => {
 //         }
 //     });
 
+// db.query(`SELECT t1.Hostname, t1.CPU, t1.Memory, t1.Net
+//     FROM Devices_trap t1
+//     INNER JOIN Devices t2 ON t1.Hostname = t2.Hostname
+//     ORDER BY t2.Time_Stamp DESC
+//     LIMIT 1`, 
+//     (err, results, fields) => {
+//         if (err) {
+//             msg = `查询trap错误: ${err}`
+//             LogMsg(msg)
+//         }
+//         else {
+//             LogMsg(JSON.stringify(results))
+//         }
+//     });
+
 db.query(`SELECT *
-    FROM Devices_System`, 
+    FROM Devices_trap`, 
     (err, results, fields) => {
         if (err) {
             msg = `查询trap错误: ${err}`
             LogMsg(msg)
         }
         else {
-            LogMsg(`查询到数据: ${JSON.stringify(results)}`)
+            LogMsg(JSON.stringify(results))
         }
     });
