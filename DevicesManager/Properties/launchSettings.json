@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "DevicesManager (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "DevicesManager (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

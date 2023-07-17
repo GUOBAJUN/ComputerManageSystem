@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="DevicesManager.Controls.UpdateUserConfigContentDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:DevicesManager.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="更新用户配置"
+    PrimaryButtonText ="确认"
+    CloseButtonText="取消"
+    Style="{ThemeResource DefaultContentDialogStyle}"
+    PrimaryButtonClick="ContentDialog_PrimaryButtonClick"
+    CloseButtonClick="ContentDialog_CloseButtonClick">
+
+    <StackPanel VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+        <PasswordBox Name="NewPasswd" Header="更新密码"/>
+        <NumberBox Name="NewPermission"
+                   Header="更新权限"
+                   Minimum="1"
+                   Value="{x:Bind Permission}"
+                   SpinButtonPlacementMode="Compact"
+                   SmallChange="1"
+                   LargeChange="1"/>
+        <PasswordBox Name="AuthPasswd" Header="授权密码"/>
+        <TextBlock Name="ErrorText" Foreground="Red"/>
+    </StackPanel>
+</ContentDialog>

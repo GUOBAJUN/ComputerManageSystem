@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="DevicesManager.Pages.DashboardPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:DevicesManager.Pages"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    NavigationCacheMode="Enabled">
+
+    <Grid Padding="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="50"/>
+            <RowDefinition/>
+        </Grid.RowDefinitions>
+        <TextBlock Text="仪表盘" Style="{ThemeResource TitleTextBlockStyle}"/>
+        <Grid ColumnSpacing="5" Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <ScrollViewer VerticalAlignment="Center" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <VariableSizedWrapGrid Orientation="Horizontal" MaximumRowsOrColumns="4" ItemHeight="300" ItemWidth="300" HorizontalAlignment="Center">
+                    <StackPanel Background="{ThemeResource LayoutDefaultBackgroundBrush}" CornerRadius="5" Margin="5" Padding="10">
+                        <TextBlock Text="在线主机数" Style="{ThemeResource SubtitleTextBlockStyle}"/>
+                        <ProgressRing IsIndeterminate="False" x:Name="Host_ProgressRing" Value="50" Margin="0,10" Width="200" Height="{x:Bind Width}"/>
+                        <TextBlock Style="{ThemeResource BodyTextBlockStyle}">
+                            <Run Text="当前在线"/>
+                            <Run x:Name="Alive_Run"/>
+                            <Run Text="台，共"/>
+                            <Run x:Name="Total_Run"/>
+                        </TextBlock>
+                    </StackPanel>
+                    <StackPanel Background="{ThemeResource LayoutDefaultBackgroundBrush}" CornerRadius="5" Margin="5" Padding="10">
+                        <TextBlock Text="网络负载分布" Style="{ThemeResource SubtitleTextBlockStyle}"/>
+                        <Canvas Width="200" Height="200">
+                            <ProgressRing IsIndeterminate="False" x:Name="NetHigh_ProgressRing" Foreground="#B62719" Value="0" Margin="0,10" Width="200" Height="{x:Bind Width}"/>
+                            <ProgressRing IsIndeterminate="False" x:Name="NetMed_ProgressRing" Foreground="#057CD1" Value="0" Margin="0,10" Width="200" Height="{x:Bind Width}"/>
+                            <ProgressRing IsIndeterminate="False" x:Name="NetLow_ProgressRing" Foreground="#1AC764" Value="0" Margin="0,10" Width="200" Height="{x:Bind Width}"/>
+                        </Canvas>
+                        <TextBlock x:Name="NetDist_TextBlock" Style="{ThemeResource BodyTextBlockStyle}"/>
+                    </StackPanel>
+                    <StackPanel Background="{ThemeResource LayoutDefaultBackgroundBrush}" CornerRadius="5" Margin="5" Padding="10">
+                        <TextBlock Text="总体内存负载" Style="{ThemeResource SubtitleTextBlockStyle}"/>
+                        <Grid>
+                            <ProgressRing x:Name="Mem_ProgressRing" IsIndeterminate="False" Value="0" Margin="0,10" Width="200" Height="{x:Bind Width}"/>
+                            <TextBlock VerticalAlignment="Center" HorizontalAlignment="Center" x:Name="Mem_TextBlock" Style="{ThemeResource TitleLargeTextBlockStyle}"/>
+                        </Grid>
+                    </StackPanel>
+                    <StackPanel Background="{ThemeResource LayoutDefaultBackgroundBrush}" CornerRadius="5" Margin="5" Padding="10">
+                        <TextBlock Text="总体CPU载荷" Style="{ThemeResource SubtitleTextBlockStyle}"/>
+                        <Grid>
+                            <ProgressRing x:Name="CPU_ProgressRing" IsIndeterminate="False" Value="0" Margin="0,10" Width="200" Height="{x:Bind Width}"/>
+                            <TextBlock VerticalAlignment="Center" HorizontalAlignment="Center" x:Name="CPU_TextBlock" Style="{ThemeResource TitleLargeTextBlockStyle}"/>
+                        </Grid>
+                    </StackPanel>
+                </VariableSizedWrapGrid>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</Page>
