@@ -3,7 +3,7 @@ import time
 import threading
 
 if __name__ == '__main__':
-    agent = Agent.CollectingAgent('http://VM.local:10086/')
+    agent = Agent.CollectingAgent('http://127.0.0.1:10086/')
     agent.report_system_info()
     while True:
         agent.report_performance()

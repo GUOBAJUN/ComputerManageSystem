@@ -44,9 +44,7 @@ public partial class App : Application
         this.InitializeComponent();
         httpClient = new HttpClient(new HttpClientHandler() { UseCookies = true })
         {
-            BaseAddress = new Uri("http://VM.local:10086/")
-            //BaseAddress = new Uri("http://desktop-i6jagl6.local:10086/")
-            //BaseAddress = new Uri("http://127.0.0.1:10086/")
+            BaseAddress = new Uri("http://127.0.0.1:10086/")
         };
     }
 
